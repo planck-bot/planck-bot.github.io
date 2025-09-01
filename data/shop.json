@@ -1,0 +1,17 @@
+{
+    "regular": {
+        "Energy Manipulator": {
+            "description": "Increase energy gain by 10% per level",
+            "price": {
+                "energy": 100
+            },
+            "increments": {
+                "energy": "%50"
+            },
+            "requirements": {
+                "level": 1
+            },
+            "max": 10
+        }
+    }
+}

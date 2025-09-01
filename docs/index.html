@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>planck</title>
+    <meta name="description" content="planck - Fun incremental bot!">
+    <meta name="keywords" content="discord bot, planck, economy bot, discord game bot">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://planck-bot.github.io/web/">
+    <meta property="og:title" content="planck">
+    <meta property="og:description" content="Fun incremental bot!">
+    <meta property="og:image" content="./static/images/planck-banner.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://planck-bot.github.io/web/">
+    <meta property="twitter:title" content="planck">
+    <meta property="twitter:description" content="Fun incremental bot!">
+    <meta property="twitter:image" content="./static/images/planck-banner.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="./static/images/favicon.ico">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="./static/css/style.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="./static/images/planck-logo.png" alt="Planck Bot Logo">
+                <span>Planck Bot</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#commands" class="nav-link">Commands</a></li>
+                <li><a href="#support" class="nav-link">Support</a></li>
+                <li><a href="privacy.html" class="nav-link">Privacy</a></li>
+                <li><a href="tos.html" class="nav-link">Terms</a></li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">Thanks for using <span class="highlight">Planck Bot</span>!</h1>
+                <p class="hero-description">
+                    It's a discord bot I made as a hobby! With an incremental type progression.
+                    Thank you to Grass Cutting Incremental (on Roblox) and Virtual Fisher (on discord) for the idea!
+                </p>
+                <div class="hero-buttons">
+                    <a href="https://discord.com/oauth2/authorize?client_id=768208737013071883" 
+                       class="btn btn-primary" target="_blank">
+                        <i class="fab fa-discord"></i> Add to Server
+                    </a>
+                    <a href="#features" class="btn btn-secondary">
+                        <i class="fas fa-info-circle"></i> Learn More
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number" id="server-count">0</div>
+                        <div class="stat-label">Servers</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="user-count">0</div>
+                        <div class="stat-label">Users</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="./static/images/bot-preview.png" alt="Planck Bot Preview">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Features</h2>
+            <p class="section-subtitle">Discover what it does! (Not scientifically accurate)</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h3>Incremental based</h3>
+                    <p>An incremental bot with many commands and tons of features to discover as you progress.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <h3>Helpful Guides</h3>
+                    <p>The /help command is very informative and provides detailed guidance to help you navigate all features.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <h3>Actively Developed</h3>
+                    <p>Still being worked on with regular updates, new features, and improvements based on community feedback.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Commands Section -->
+    <section id="commands" class="commands">
+        <div class="container">
+            <h2 class="section-title">Commands</h2>
+            <p class="section-subtitle">Get started with these essential commands</p>
+            
+            <div class="commands-grid">
+                <div class="command-category">
+                    <h3><i class="fas fa-terminal"></i> Essential Commands</h3>
+                    <div class="command-list">
+                        <div class="command-item">
+                            <code>/gain</code>
+                            <span>The main command to gain basically anything</span>
+                        </div>
+                        <div class="command-item">
+                            <code>/help</code>
+                            <span>Get help with commands</span>
+                        </div>
+                        <div class="command-item">
+                            <code>/info</code>
+                            <span>Get information about the bot</span>
+                        </div>
+                        <div class="command-item">
+                            <code>/ping</code>
+                            <span>Check bot latency</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section id="support" class="support">
+        <div class="container">
+            <h2 class="section-title">Need Help?</h2>
+            <!-- <p class="section-subtitle">future </p> -->
+            
+            <div class="support-grid">
+                <div class="support-card">
+                    <i class="fab fa-discord"></i>
+                    <h3>Discord Server</h3>
+                    <p>Join our support server for help, updates, and community discussions.</p>
+                    <a href="https://discord.gg/JRpMepV8Sk" class="btn btn-outline" target="_blank">Join Server</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="./static/images/planck-logo.png" alt="Planck Bot Logo">
+                        <span>Planck Bot</span>
+                    </div>
+                    <p>Enhancing Discord servers with fun since 2025!</p>
+                    <div class="social-links">
+                        <a href="https://discord.gg/JRpMepV8Sk"><i class="fab fa-discord"></i></a>
+                        <a href="https://github.com/planck-bot/bot"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#commands">Commands</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="tos.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Bot Invite</h4>
+                    <a href="https://discord.com/oauth2/authorize?client_id=768208737013071883" 
+                       class="btn btn-primary btn-small" target="_blank">
+                        <i class="fab fa-discord"></i> Add to Server
+                    </a>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Planck Bot. All rights reserved.</p>
+                <p>Made with <i class="fas fa-heart"></i> for the Discord community</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="./static/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+    "regular": {
+        "item1": {
+            "description": "Price increases by 10 every upgrade",
+            "price": {
+                "energy": 100
+            },
+            "increments": {
+                "energy": "+10"
+            },
+            "requirements": {
+                "level": 1
+            },
+            "max": 10
+        },
+        "item2": {
+            "description": "Price doubles every upgrade",
+            "price": {
+                "energy": 100
+            },
+            "increments": {
+                "energy": "x20"
+            },
+            "requirements": {
+                "level": 1
+            },
+            "max": 10
+        },
+        "item3": {
+            "description": "Price increases by 20% every upgrade",
+            "price": {
+                "energy": 100
+            },
+            "increments": {
+                "energy": "%20"
+            },
+            "requirements": {
+                "level": 1
+            },
+            "max": 10
+        }
+    }
+}
