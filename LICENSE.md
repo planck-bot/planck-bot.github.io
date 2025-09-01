@@ -1,5 +1,7 @@
 Copyright (C) 2025 LucasLiorLE
+
 Email: lucasliorlee@gmail.com
+
 Source code: https://github.com/planck-bot/bot
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
