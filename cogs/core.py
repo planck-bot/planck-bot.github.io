@@ -224,6 +224,18 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                     "requirement": {
                         "energy": 1
                     }
+                },
+                "Differentiate": {
+                    "title": "How to tell apart quarks",
+                    "content": (
+                        "**Differentiating** is how you will tell apart quarks!\n\n"
+                        "🔹 Allows you to create up and down quarks\n"
+                        "🔹 They will be used to create **protons** and **neutrons**\n"
+                        "🔹 You will also unlock more types of quarks later on!"
+                    ),
+                    "requirement": {
+                        "quarks": 1
+                    }
                 }
             }
         }
@@ -354,7 +366,14 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
         back_row.add_item(back)
         container.add_item(back_row)
 
-    await cb(interaction, view, is_command)
+    if is_command:
+        if interaction.response.is_done():
+            await interaction.followup.send(view=view)
+        else:
+            await interaction.response.send_message(view=view)
+    else:
+        # unreliable is_done()
+        await cb(interaction, view, is_command)
 
 async def help_stage_select_cb(interaction: discord.Interaction, bot: commands.Bot):
     """Handle stage selection from the dropdown"""
