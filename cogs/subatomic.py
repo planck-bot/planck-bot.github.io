@@ -121,5 +121,13 @@ class SubatomicCog(commands.Cog):
     async def subatomic_command(self, interaction: discord.Interaction):
         await subatomic_cb(interaction, self.bot, True)
 
+    @subatomic_group.command(name="probabilitize", description="Attempt to create quarks")
+    @app_commands.describe(amount="The amount to attempt")
+    async def probabilitize_command(self, interaction: discord.Interaction, amount: int = 0):
+        if amount > 0:
+            await probabilitize(interaction, self.bot, amount)
+        else:
+            await probabilitize_cb(interaction, self.bot, True)
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(SubatomicCog(bot))
