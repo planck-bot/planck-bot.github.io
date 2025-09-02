@@ -49,12 +49,18 @@ class MultiplierManager(BaseUpgradeManager):
         upgrades = await self._load_upgrades()
         base += upgrades.get("quantum_manipulator", 0) // 20  # 5% every upgrade (0.05)
         return base
-    
+
+    async def get_quark_differentiation_multiplier(self, base: float) -> float:
+        upgrades = await self._load_upgrades()
+        return base * (2 ** upgrades.get("quantum_lenses", 0))
+
     async def get_full_multiplier(self, multiplier_type: str, base: float = 1.0) -> float:
         if multiplier_type == "energy":
             m = await self.get_energy_multiplier(base)
         elif multiplier_type in ["quarks", "quark"]:
             m = await self.get_quark_multiplier(base)
+        elif multiplier_type == "quark_differentiation":
+            m = await self.get_quark_differentiation_multiplier(base)
         else:
             m = base
         

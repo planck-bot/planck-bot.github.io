@@ -199,12 +199,11 @@ async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = N
 
     energy = await full_multipliers("energy", user=interaction.user)
     quarks = await full_multipliers("quark", user=interaction.user)
-    quarks_chance = await full_chances("quark", user=interaction.user)
+
     container.add_item(discord.ui.TextDisplay(
         f"**XP**: 1x\n"
         f"**Energy**: {energy:.2f}x\n"
         f"**Quarks**: {quarks:.2f}x\n"
-        f"**Quark Chance**: {quarks_chance}% ({quarks_chance + 5}% from craft)"
     ))
     container.add_item(discord.ui.Separator())
     action_row = discord.ui.ActionRow()
@@ -259,8 +258,8 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                     "title": "First steps",
                     "content": (
                         "**Probabilitize** is how you will gain quarks:\n\n"
-                        "🔹 Has a chance to convert energy into quarks!\n"
-                        "🔹 You can upgrade the chance later on\n"
+                        "🔹 Has a chance (5% base) to convert energy into quarks!\n"
+                        "🔹 You can upgrade the chance using shop upgrades\n"
                         "🔹 You will also need to **differentiate** them later!\n"
                     ),
                     "requirement": {
@@ -273,7 +272,14 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                         "**Differentiating** is how you will tell apart quarks!\n\n"
                         "🔹 Allows you to create up and down quarks\n"
                         "🔹 They will be used to create **protons** and **neutrons**\n"
-                        "🔹 You will also unlock more types of quarks later on!"
+                        "🔹 You will also unlock more types of quarks later on!\n"
+                        "🔹 Here is the chance table:\n"
+                        "🔹 Up Quarks: 75%\n"
+                        "🔹 Down Quarks: 75%\n"
+                        "🔹 Strange Quarks: 0.1%\n"
+                        "🔹 Charm Quarks: 0.01%\n"
+                        "🔹 Bottom Quarks: 0.01%\n"
+                        "🔹 Top Quarks: 0.001%\n"
                     ),
                     "requirement": {
                         "quarks": 1
