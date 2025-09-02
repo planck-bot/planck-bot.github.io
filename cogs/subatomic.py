@@ -129,9 +129,11 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
 
     if results:
         await add_data("currency", interaction.user.id, results)
+        quark_lines = "\n".join([f"+{amount} {quark.replace('_', ' ').title()}(s)" for quark, amount in results.items()])
+
         container.add_item(discord.ui.TextDisplay(
             f"Energy + Quarks spent: {energy_cost} energy + {amount} quarks\n"
-            f"Differentiated Quarks Gained:\n" + "\n".join([f"+{amount} {quark.replace("_", " ").title()}(s)" for quark, amount in results.items()]) + "\n"
+            f"Differentiated Quarks Gained:\n{quark_lines}\n"
             f"Chance Multiplier: {multiplier:.2f}x"
         ))
     else:

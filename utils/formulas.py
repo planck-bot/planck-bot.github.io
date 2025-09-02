@@ -15,7 +15,6 @@ def calculate_xp_for_level(level: int) -> int:
     
     total_xp = 0
     for lvl in range(1, level):
-        # Much harder formula: exponential growth with higher base costs
         xp_for_next_level = math.floor(15 * (lvl ** 1.8) + (50 * lvl) + 100)
         total_xp += xp_for_next_level
     
