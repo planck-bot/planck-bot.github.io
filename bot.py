@@ -19,12 +19,12 @@ async def register_commands():
             await bot.load_extension(f"cogs.{filename[:-3]}")
 
     registered_commands = get_registered_commands()
-    print(f"Found {len(registered_commands)} commands to register")
+    # print(f"Found {len(registered_commands)} commands to register")
     
     for command in registered_commands:
         try:
             bot.tree.add_command(command)
-            print(f"Successfully registered command: {command.name}")
+            # print(f"Successfully registered command: {command.name}")
         except Exception as e:
             print(f"Failed to register {command.name}: {e}")
 
