@@ -42,13 +42,13 @@ class MultiplierManager(BaseUpgradeManager):
     
     async def get_energy_multiplier(self, base: float = 1.0) -> float:
         upgrades = await self._load_upgrades()
-        base += upgrades.get("energy_manipulator", 0) // 10  # 10% every upgrade (0.10)
-        base += upgrades.get("undercharged", 0) // 4  # 25% every upgrade (0.25)
+        base += upgrades.get("energy_manipulator", 0) / 10  # 10% every upgrade (0.10) additive
+        base += base * (upgrades.get("undercharged", 0) / 4)  # 25% every upgrade (0.25) compounding
         return base
     
     async def get_quark_multiplier(self, base: float = 1.0) -> float:
         upgrades = await self._load_upgrades()
-        base += upgrades.get("quantum_manipulator", 0) // 20  # 5% every upgrade (0.05)
+        base += upgrades.get("quantum_manipulator", 0) / 20  # 5% every upgrade (0.05)
         return base
 
     async def get_quark_differentiation_multiplier(self, base: float) -> float:
@@ -67,9 +67,12 @@ class MultiplierManager(BaseUpgradeManager):
         
         level_info = await self.get_level_info()
         level = level_info["level"]
-        boosted = m * (1 + 0.01 * (level - 1))
-        return boosted
 
+        boosted = m * (1.1 ** (level // 10)) # rather than 1% per level
+        # you get the boost every 10 levels
+        # however, it compounds
+
+        return boosted
 
 class ChanceManager(BaseUpgradeManager):
     """

@@ -6,12 +6,12 @@
                 "energy": 100
             },
             "increments": {
-                "energy": "%50"
+                "energy": "%10"
             },
             "requirements": {
                 "level": 1
             },
-            "max": 10
+            "max": 99
         },
         "Quantum Luck": {
             "description": "Increases the chance to get a quark by 1% per level",
@@ -59,7 +59,7 @@
             "max": 5
         },
         "Undercharged": {
-            "description": "Increases energy gain by 25% per level",
+            "description": "Increases energy gain by 25% per level (compounding)",
             "price": {
                 "energy": 1000,
                 "electrons": 1

@@ -15,7 +15,8 @@ def calculate_xp_for_level(level: int) -> int:
     
     total_xp = 0
     for lvl in range(1, level):
-        xp_for_next_level = math.floor(5 * (lvl ** 1.2) + (10 * lvl) + 20)
+        # Much harder formula: exponential growth with higher base costs
+        xp_for_next_level = math.floor(15 * (lvl ** 1.8) + (50 * lvl) + 100)
         total_xp += xp_for_next_level
     
     return total_xp
@@ -34,7 +35,7 @@ def calculate_level_from_xp(current_xp: int) -> dict:
         return {
             "level": 1,
             "xp_for_current_level": 0,
-            "xp_for_next_level": math.floor(5 * (1 ** 1.2) + (10 * 1) + 20),
+            "xp_for_next_level": math.floor(15 * (1 ** 1.8) + (50 * 1) + 100),
             "xp_progress": 0
         }
     

@@ -43,9 +43,12 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
             profile_data["last_gain"] = now
             await insert_data("profile", profile_data)
 
+        level_info = calculate_level_from_xp(profile_data.get("xp", 0))
+        level = level_info["level"]
+
         # == ENERGY
         multiplier = await full_multipliers("energy", user=interaction.user)
-        energy_gained = int(random.randint(1, 10) * multiplier)
+        energy_gained = int(random.randint(1 + level, 10 + level) * multiplier)
 
         result = await add_data("currency", user_id, {"energy": energy_gained})
         total_energy = result["energy"]
@@ -55,7 +58,7 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
         quarks_gained = 0
         
         if quark_chance > 0 and random.random() < (quark_chance / 100):
-            quarks_gained = random.randint(2, 5)
+            quarks_gained = random.randint(2 + level, 5 + level)
             await add_data("currency", user_id, {"quarks": quarks_gained})
         
         # == XP
@@ -67,13 +70,13 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
         quark_result = await get_user_data("currency", user_id)
         total_quarks = quark_result.get("quarks", 0) if quark_result else 0
         
-        gain_text = f"**Gained**:\n+{energy_gained} energy (total: {total_energy:,})"
+        gain_text = f"**Gained**:\n+{energy_gained:,} energy (total: {total_energy:,})"
         
         if quarks_gained > 0:
-            gain_text += f"\n+{quarks_gained} quarks (total: {total_quarks:,})"
+            gain_text += f"\n+{quarks_gained:,} quarks (total: {total_quarks:,})"
         
 
-        gain_text += f"\n+{total_xp} EXP"
+        gain_text += f"\n+{total_xp:,} EXP"
         container.add_item(discord.ui.TextDisplay(gain_text))
         ephemeral = False
 
