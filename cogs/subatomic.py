@@ -43,11 +43,12 @@ async def probabilitize(interaction: discord.Interaction, bot: commands.Bot = No
     quarks = 0 
     for i in range(amount):
         if (i + 1) % 100 == 0:
-            await add_data("currency", interaction.user.id, {"quarks": 1})
             quarks += 1
         elif random.random() < chance / 100:
-            await add_data("currency", interaction.user.id, {"quarks": 1})
             quarks += 1
+    
+    if quarks > 0:
+        await add_data("currency", interaction.user.id, {"quarks": quarks})
 
     if not start:
         container.add_item(discord.ui.TextDisplay(
