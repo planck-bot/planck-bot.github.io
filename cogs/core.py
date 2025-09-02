@@ -5,7 +5,7 @@ from discord.ext import commands
 import time
 import random
 
-from utils import universal_command, base_view, add_data, insert_data, calculate_level_from_xp, get_user_data, full_multipliers, cb, get_version
+from utils import universal_command, base_view, add_data, insert_data, calculate_level_from_xp, get_user_data, full_multipliers, full_chances, cb, get_version
 start = time.time()
 
 async def check_page_requirements(user_id: int, requirements: dict) -> bool:
@@ -37,25 +37,44 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
             f"Please wait {2 - (now - last_gain):.2f}s before gaining again."
         ))
         ephemeral = True
-    else:
-        await add_data("profile", user_id, {"xp": 1, "gains": 1})
-        
+    else:        
         profile_data = await get_user_data("profile", user_id)
         if profile_data:
             profile_data["last_gain"] = now
             await insert_data("profile", profile_data)
 
+        # == ENERGY
         multiplier = await full_multipliers("energy", user=interaction.user)
         energy_gained = int(random.randint(1, 10) * multiplier)
 
         result = await add_data("currency", user_id, {"energy": energy_gained})
         total_energy = result["energy"]
         
-        container.add_item(discord.ui.TextDisplay(
-            f"**Gained**:\n"
-            f"+{energy_gained} energy (total: {total_energy})\n"
-            f"+1 EXP"
-        ))
+        # == QUARKS
+        quark_chance = await full_chances("quark", user=interaction.user)
+        quarks_gained = 0
+        
+        if quark_chance > 0 and random.random() < (quark_chance / 100):
+            quarks_gained = random.randint(2, 5)
+            await add_data("currency", user_id, {"quarks": quarks_gained})
+        
+        # == XP
+        # Energy: 1 XP per
+        # Quarks: 3 XP per
+        total_xp = energy_gained + (quarks_gained * 3)
+        await add_data("profile", user_id, {"xp": total_xp, "gains": 1})
+        
+        quark_result = await get_user_data("currency", user_id)
+        total_quarks = quark_result.get("quarks", 0) if quark_result else 0
+        
+        gain_text = f"**Gained**:\n+{energy_gained} energy (total: {total_energy:,})"
+        
+        if quarks_gained > 0:
+            gain_text += f"\n+{quarks_gained} quarks (total: {total_quarks:,})"
+        
+
+        gain_text += f"\n+{total_xp} EXP"
+        container.add_item(discord.ui.TextDisplay(gain_text))
         ephemeral = False
 
     container.add_item(discord.ui.Separator())
@@ -161,8 +180,13 @@ async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = N
     view, container = await base_view(interaction)
 
     energy = await full_multipliers("energy", user=interaction.user)
+    quarks = await full_multipliers("quark", user=interaction.user)
+    quarks_chance = await full_chances("quark", user=interaction.user)
     container.add_item(discord.ui.TextDisplay(
-        f"**Energy**: {energy:.2f}x"
+        f"**XP**: 1x\n"
+        f"**Energy**: {energy:.2f}x\n"
+        f"**Quarks**: {quarks:.2f}x\n"
+        f"**Quark Chance**: {quarks_chance}% ({quarks_chance + 5}% from craft)"
     ))
     container.add_item(discord.ui.Separator())
     action_row = discord.ui.ActionRow()

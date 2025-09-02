@@ -96,11 +96,13 @@ async def shop_cb(interaction: discord.Interaction, bot: commands.Bot, is_comman
     shop_data = await read_json("data/shop.json")
     user_currency = await get_user_data("currency", user_id)
     current_energy = user_currency.get("energy", 0) if user_currency else 0
-    
+    current_quarks = user_currency.get("quarks", 0) if user_currency else 0
+
     header_container = discord.ui.Container()
     header_container.add_item(discord.ui.TextDisplay(
         f"**Currencies:**\n"
-        f"Energy: {current_energy:,}"
+        f"Energy: {current_energy:,}\n"
+        f"Quarks: {current_quarks:,}"
     ))
 
     item_containers = []

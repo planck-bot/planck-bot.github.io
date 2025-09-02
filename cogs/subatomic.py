@@ -4,7 +4,7 @@ from discord.ext import commands
 
 import random 
 
-from utils import UniversalGroup, read_json, base_view, add_data, get_user_data, cb, Paginator
+from utils import UniversalGroup, base_view, add_data, get_user_data, cb, full_chances
 
 # Probabilitize, 5% chance to get a quark. Guarenteed every 100 energy
 async def probabilitize_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
@@ -36,7 +36,7 @@ async def probabilitize(interaction: discord.Interaction, bot: commands.Bot = No
 
     await add_data("currency", interaction.user.id, {"energy": -amount})
 
-    chance = 5
+    chance = 5 + await full_chances("quark", user=interaction.user)
 
     start = user_data.get("quarks", 0) if user_data else 0
 

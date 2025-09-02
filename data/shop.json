@@ -12,6 +12,36 @@
                 "level": 1
             },
             "max": 10
+        },
+        "Quantum Luck": {
+            "description": "Increases the chance to get a quark by 1% per level",
+            "price": {
+                "energy": 200,
+                "quarks": 5
+            },
+            "increments": {
+                "energy": "%20",
+                "quarks": "%25"
+            },
+            "requirements": {
+                "level": 3
+            },
+            "max": 20
+        },
+        "Quantum Manipulator": {
+            "description": "Increase quark gain by 5% per level on gain (requires quantum luck upgrade)",
+            "price": {
+                "energy": 500,
+                "quarks": 25
+            },
+            "increments": {
+                "energy": "%20",
+                "quarks": "%25"
+            },
+            "requirements": {
+                "level": 5
+            },
+            "max": 20
         }
     }
 }

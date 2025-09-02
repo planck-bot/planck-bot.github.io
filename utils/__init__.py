@@ -11,7 +11,7 @@ from .files import (
     user_exists
 )
 from .formulas import calculate_level_from_xp, calculate_xp_for_level
-from .multipliers import full_multipliers
+from .upgrades import full_multipliers, full_chances
 
 __version__ = "0.0.1"
 def get_version():
@@ -28,5 +28,5 @@ __all__ = [
 
     "calculate_level_from_xp", "calculate_xp_for_level",
 
-    "full_multipliers"
+    "full_multipliers", "full_chances"
 ]
