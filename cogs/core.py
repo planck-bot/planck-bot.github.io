@@ -287,6 +287,18 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                     "requirement": {
                         "quarks": 1
                     }
+                },
+                "Condenser": {
+                    "title": "Zip Zap Electricity",
+                    "content": (
+                        "**Condense** energy into electrons!\n\n"
+                        "🔹 Requires a LOT of energy (1000)\n"
+                        "🔹 Electrons will be used to create **atoms** later!\n"
+                        "🔹 There will also be shop items you can buy with them."
+                    ),
+                    "requirement": {
+                        "energy": 500
+                    }
                 }
             }
         }
@@ -323,7 +335,7 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
         
         back_row = discord.ui.ActionRow()
         back = discord.ui.Button(label="Back")
-        back.callback = lambda inter: menu_cb(inter, bot)
+        back.callback = lambda inter: info_cb(inter, bot)
         back_row.add_item(back)
         container.add_item(back_row)
         

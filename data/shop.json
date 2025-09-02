@@ -57,6 +57,21 @@
                 "level": 10
             },
             "max": 5
+        },
+        "Undercharged": {
+            "description": "Increases energy gain by 25% per level",
+            "price": {
+                "energy": 1000,
+                "electrons": 1
+            },
+            "increments": {
+                "energy": "%65",
+                "electrons": "+1"
+            },
+            "requirements": {
+                "level": 10
+            },
+            "max": 10
         }
     }
 }

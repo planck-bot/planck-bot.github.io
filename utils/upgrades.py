@@ -43,6 +43,7 @@ class MultiplierManager(BaseUpgradeManager):
     async def get_energy_multiplier(self, base: float = 1.0) -> float:
         upgrades = await self._load_upgrades()
         base += upgrades.get("energy_manipulator", 0) // 10  # 10% every upgrade (0.10)
+        base += upgrades.get("undercharged", 0) // 4  # 25% every upgrade (0.25)
         return base
     
     async def get_quark_multiplier(self, base: float = 1.0) -> float:

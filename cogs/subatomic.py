@@ -155,6 +155,43 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
 
     await interaction.response.send_message(view=view)
 
+async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
+    view, container = await base_view(interaction)
+    user_data = await get_user_data("currency", interaction.user.id)
+    energy = user_data.get('energy', 0) if user_data else 0
+    energy_cost = 1000 * amount
+
+    if energy_cost > energy:
+        container.add_item(discord.ui.TextDisplay(
+            f"You do not have enough energy to condense {amount} electrons."
+        ))
+        return await interaction.response.send_message(view=view)
+
+    await add_data("currency", interaction.user.id, {"energy": -energy_cost, "electrons": amount})
+
+    container.add_item(discord.ui.TextDisplay(
+        f"Energy spent: {energy_cost}\n"
+        f"Electrons condensed: {amount}"
+    ))
+
+    container.add_item(discord.ui.Separator())
+    action_row = discord.ui.ActionRow()
+    retry = discord.ui.Button(label="Retry")
+    back = discord.ui.Button(label="Back")
+
+    action_row.add_item(retry)
+    action_row.add_item(back)
+
+    retry.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Differentiate Quarks",
+                                              placeholder="Enter amount of quarks to differentiate",
+                                              callback=differentiate_cb,
+                                              currencies=["energy"])
+    back.callback = lambda inter: condense_cb(inter, bot)
+    container.add_item(action_row)
+
+    await interaction.response.send_message(view=view)
+
 async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     from .core import gain_cb, menu_cb
     view, container = await base_view(interaction)
@@ -163,6 +200,10 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
         f"**Subatomic Menu**\n"
         f"Coming soon"
     ))
+
+    user_data = await get_user_data("currency", interaction.user.id)
+    energy = user_data.get('energy', 0) if user_data else 0
+    quarks = user_data.get('quarks', 0) if user_data else 0
 
     container.add_item(discord.ui.Separator())
     subatomic_row = discord.ui.ActionRow()
@@ -174,8 +215,9 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
                                               placeholder="Enter amount of energy to probabilitize",
                                               callback=probabilitize_cb,
                                               currencies=["energy"])
-
-    subatomic_row.add_item(probabilitize)
+    
+    if energy > 0:
+        subatomic_row.add_item(probabilitize)
 
     differentiate = discord.ui.Button(label="Differentiate")
 
@@ -185,7 +227,19 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
                                               callback=differentiate_cb,
                                               currencies=["quarks", "energy"])
 
-    subatomic_row.add_item(differentiate)
+    if quarks > 0 and energy > 249:
+        subatomic_row.add_item(differentiate)
+
+    condense = discord.ui.Button(label="Condense")
+
+    condense.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Condense Electrons",
+                                              placeholder="Enter amount of electrons to condense",
+                                              callback=condense_cb,
+                                              currencies=["energy"])
+
+    if energy > 999:
+        subatomic_row.add_item(condense)
 
     container.add_item(subatomic_row)
 
@@ -235,6 +289,18 @@ class SubatomicCog(commands.Cog):
                              currencies=["quarks", "energy"])
         else:
             await differentiate_cb(interaction, self.bot, True)
+
+    @subatomic_group.command(name="condense", description="Condense electrons into energy")
+    @app_commands.describe(amount="The amount to condense")
+    async def condense_command(self, interaction: discord.Interaction, amount: int = 0):
+        if amount > 0:
+            await base_modal(interaction, self.bot, False,
+                             title="Condense Electrons",
+                             placeholder="Enter amount of electrons to condense",
+                             callback=condense_cb,
+                             currencies=["energy"])
+        else:
+            await condense_cb(interaction, self.bot, True)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(SubatomicCog(bot))
