@@ -1,9 +1,3 @@
-Copyright (C) 2025 LucasLiorLE
-
-Email: lucasliorlee@gmail.com
-
-Source code: https://github.com/planck-bot/bot
-
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
 
@@ -651,3 +645,8 @@ the "copyright" line and a pointer to where the full notice is found.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+Copyright (C) 2025 LucasLiorLE
+
+Email: lucasliorlee@gmail.com
+
+Source code: https://github.com/planck-bot/bot
