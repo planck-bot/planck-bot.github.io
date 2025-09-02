@@ -6,24 +6,24 @@ import random
 
 from utils import UniversalGroup, base_view, add_data, get_user_data, cb, full_chances
 
-# Probabilitize, 5% chance to get a quark. Guarenteed every 100 energy
-async def probabilitize_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
+async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_command: bool = False, *, title: str, placeholder: str, callback, currencies: list):
     view, container = await base_view(interaction)
 
     user_data = await get_user_data("currency", interaction.user.id)
-    energy = user_data.get('energy', 0) if user_data else 0
-    if energy == 0:
-        container.add_item(discord.ui.TextDisplay(
-            "You have no energy to probabilitize."
-        ))
-        return await cb(interaction, view, is_command)
+    for currency in currencies:
+        amount = user_data.get(currency, 0) if user_data else 0
+        if amount == 0:
+            container.add_item(discord.ui.TextDisplay(
+                f"You have no {currency} to {title.lower()}."
+            ))
+            return await cb(interaction, view, is_command)
 
-    amount_modal = discord.ui.Modal(title="Probabilitize Energy", timeout=None)
-    amount_modal.add_item(discord.ui.TextInput(label="Amount", placeholder="Enter amount of energy to probabilitize"))
-    amount_modal.on_submit = lambda inter: probabilitize(inter, bot, amount=int(amount_modal.children[0].value))
+    amount_modal = discord.ui.Modal(title=title, timeout=None)
+    amount_modal.add_item(discord.ui.TextInput(label="Amount", placeholder=placeholder))
+    amount_modal.on_submit = lambda inter: callback(inter, bot, amount=int(amount_modal.children[0].value))
     await interaction.response.send_modal(amount_modal)
-
-async def probabilitize(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
+    
+async def probabilitize_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
     energy = user_data.get('energy', 0) if user_data else 0
@@ -73,7 +73,11 @@ async def probabilitize(interaction: discord.Interaction, bot: commands.Bot = No
     action_row.add_item(retry)
     action_row.add_item(back)
 
-    retry.callback = lambda inter: probabilitize(inter, bot, amount)
+    retry.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Probabilitize Energy",
+                                              placeholder="Enter amount of energy to probabilitize",
+                                              callback=probabilitize_cb,
+                                              currencies=["energy"])
     back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
 
@@ -93,7 +97,11 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
 
     probabilitize = discord.ui.Button(label="Probabilitize")
 
-    probabilitize.callback = lambda inter: probabilitize_cb(inter, bot, is_command=False)
+    probabilitize.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Probabilitize Energy",
+                                              placeholder="Enter amount of energy to probabilitize",
+                                              callback=probabilitize_cb,
+                                              currencies=["energy"])
 
     subatomic_row.add_item(probabilitize)
 
@@ -126,7 +134,11 @@ class SubatomicCog(commands.Cog):
     @app_commands.describe(amount="The amount to attempt")
     async def probabilitize_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
-            await probabilitize(interaction, self.bot, amount)
+            await base_modal(interaction, self.bot, False,
+                             title="Probabilitize Energy",
+                             placeholder="Enter amount of energy to probabilitize",
+                             callback=probabilitize_cb,
+                             currencies=["energy"])
         else:
             await probabilitize_cb(interaction, self.bot, True)
 
