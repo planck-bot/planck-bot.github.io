@@ -151,7 +151,22 @@ async def info_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
 
 async def menu_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     from .shop import shop_cb
+    from .subatomic import subatomic_cb
     view, container = await base_view(interaction)
+    action_row = discord.ui.ActionRow()
+    subatomic = discord.ui.Button(label="Subatomic")
+    atomic = discord.ui.Button(label="Atomic")
+
+    action_row.add_item(subatomic)
+    if 0==1:
+        # TODO: Later on include a check here
+        # After a user gets their first atom?
+        action_row.add_item(atomic)
+
+    subatomic.callback = lambda inter: subatomic_cb(inter, bot)
+
+    container.add_item(action_row)
+
     action_row = discord.ui.ActionRow()
 
     gain = discord.ui.Button(label="Gain")
