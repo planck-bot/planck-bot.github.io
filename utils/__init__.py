@@ -1,4 +1,4 @@
-from .commands import universal_command, UniversalGroup, get_registered_commands, cb
+from .commands import universal_command, UniversalGroup, cb
 from .container_helper import base_container, base_view, Paginator, get_color
 from .files import (
     read_json,
