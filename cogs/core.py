@@ -48,7 +48,9 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
 
         # == ENERGY
         multiplier = await full_multipliers("energy", user=interaction.user)
-        energy_gained = int(random.randint(1 + level, 10 + level) * multiplier)
+
+        energy_bonus = level // 2
+        energy_gained = int(random.randint(1 + energy_bonus, 10 + energy_bonus) * multiplier)
 
         result = await add_data("currency", user_id, {"energy": energy_gained})
         total_energy = result["energy"]
@@ -58,7 +60,9 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
         quarks_gained = 0
         
         if quark_chance > 0 and random.random() < (quark_chance / 100):
-            quarks_gained = random.randint(2 + level, 5 + level)
+
+            quark_bonus = level // 3
+            quarks_gained = random.randint(2 + quark_bonus, 5 + quark_bonus)
             await add_data("currency", user_id, {"quarks": quarks_gained})
         
         # == XP
