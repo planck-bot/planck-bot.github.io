@@ -15,8 +15,7 @@ def calculate_xp_for_level(level: int) -> int:
     
     total_xp = 0
     for lvl in range(1, level):
-        # Base XP starts at 30 for level 1
-        base_xp = 30
+        base_xp = 30 # level 1 xp
         
         # Apply 10% increase for each level
         xp_for_next_level = base_xp * (1.1 ** (lvl - 1))
@@ -33,6 +32,9 @@ def calculate_xp_for_level(level: int) -> int:
         
         total_xp += math.floor(xp_for_next_level)
     
+    # i feel like this would be better if 
+    # you gained a boost every 10 levels
+    # which is what I have
     return total_xp
 
 def calculate_level_from_xp(current_xp: int) -> dict:

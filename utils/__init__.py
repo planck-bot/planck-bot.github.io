@@ -13,7 +13,7 @@ from .files import (
 from .formulas import calculate_level_from_xp, calculate_xp_for_level
 from .upgrades import full_multipliers, full_chances
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 def get_version():
     return __version__
 

@@ -143,8 +143,8 @@ async def info_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
     container.add_item(discord.ui.TextDisplay(
         "This bot is developed by <@721151215010054165>\n"
         f"**Runtime**: {runtime(int(time.time() - start))}\n"
-        f"**Guilds**: {len(bot.guilds)}\n"
-        f"**Users**: {len(bot.users)}\n"
+        f"**Guilds**: {len(bot.guilds):,}\n"
+        f"**Users**: {len(bot.users):,}\n"
         f"**Shards**: {bot.shard_count}\n"
         f"**Version**: {get_version()}"
     ))
