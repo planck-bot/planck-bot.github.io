@@ -1,10 +1,19 @@
+from typing import Optional, Tuple
+
 import discord
-from discord import app_commands
 from discord.ext import commands
 
-from typing import Tuple, Optional
-
-from utils import UniversalGroup, read_json, base_view, add_data, calculate_level_from_xp, get_user_data, cb, Paginator, moderate
+from utils import (
+    Paginator,
+    UniversalGroup,
+    add_data,
+    base_view,
+    calculate_level_from_xp,
+    cb,
+    get_user_data,
+    moderate,
+    read_json,
+)
 
 def sanitize_item_name(item_name: str) -> str:
     """Convert item name to database-safe format (lowercase with underscores)"""

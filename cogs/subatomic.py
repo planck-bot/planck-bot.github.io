@@ -1,10 +1,19 @@
+import random
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-import random 
-
-from utils import UniversalGroup, base_view, add_data, get_user_data, cb, full_chances, full_multipliers, moderate
+from utils import (
+    UniversalGroup,
+    add_data,
+    base_view,
+    cb,
+    full_chances,
+    full_multipliers,
+    get_user_data,
+    moderate,
+)
 
 @moderate()
 async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_command: bool = False, *, title: str, placeholder: str, callback, currencies: list):

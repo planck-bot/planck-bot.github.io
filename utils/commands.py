@@ -1,7 +1,5 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
-import functools
 
 def universal_command(name: str, description: str):
     def decorator(func):
