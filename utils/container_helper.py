@@ -13,7 +13,7 @@ async def base_container(interaction: discord.Interaction) -> discord.ui.Contain
     return container
 
 async def base_view(interaction: discord.Interaction) -> Tuple[discord.ui.LayoutView, discord.ui.Container]:
-    view = discord.ui.LayoutView()
+    view = discord.ui.LayoutView(timeout=None)
     container = await base_container(interaction)
     if not await user_exists("currency", interaction.user.id):
         await insert_data("profile", {"id": interaction.user.id})
@@ -40,7 +40,7 @@ class Paginator:
         self.footer_components = footer_components or []
 
     async def get_view(self) -> discord.ui.LayoutView:
-        view = discord.ui.LayoutView()
+        view = discord.ui.LayoutView(timeout=None)
         
         main_container = await base_container(self.interaction)
         
