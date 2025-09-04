@@ -1,11 +1,21 @@
+import random
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-import random 
+from utils import (
+    UniversalGroup,
+    add_data,
+    base_view,
+    cb,
+    full_chances,
+    full_multipliers,
+    get_user_data,
+    moderate,
+)
 
-from utils import UniversalGroup, base_view, add_data, get_user_data, cb, full_chances, full_multipliers
-
+@moderate()
 async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_command: bool = False, *, title: str, placeholder: str, callback, currencies: list):
     view, container = await base_view(interaction)
 
@@ -22,7 +32,8 @@ async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_com
     amount_modal.add_item(discord.ui.TextInput(label="Amount", placeholder=placeholder))
     amount_modal.on_submit = lambda inter: callback(inter, bot, amount=int(amount_modal.children[0].value))
     await interaction.response.send_modal(amount_modal)
-    
+
+@moderate()
 async def probabilitize_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -83,6 +94,7 @@ async def probabilitize_cb(interaction: discord.Interaction, bot: commands.Bot =
 
     await interaction.response.send_message(view=view)
 
+@moderate()
 async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -157,6 +169,7 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
 
     await interaction.response.send_message(view=view)
 
+@moderate()
 async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -194,6 +207,7 @@ async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None
 
     await interaction.response.send_message(view=view)
 
+@moderate()
 async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     from .core import gain_cb, menu_cb
     view, container = await base_view(interaction)

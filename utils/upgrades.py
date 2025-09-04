@@ -2,7 +2,6 @@ import discord
 from .formulas import calculate_level_from_xp
 from .files import get_user_data
 
-
 class BaseUpgradeManager:
     """
     Base class for managing user upgrades with caching functionality.
