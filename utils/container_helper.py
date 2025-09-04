@@ -1,7 +1,7 @@
 import discord
 
 from typing import Tuple, List, Optional
-from .files import get_user_data, user_exists
+from .files import get_user_data, user_exists, insert_data
 
 async def base_container(interaction: discord.Interaction) -> discord.ui.Container:
     container = discord.ui.Container()
@@ -16,6 +16,7 @@ async def base_view(interaction: discord.Interaction) -> Tuple[discord.ui.Layout
     view = discord.ui.LayoutView()
     container = await base_container(interaction)
     if not await user_exists("currency", interaction.user.id):
+        await insert_data("profile", {"id": interaction.user.id})
         container.add_item(discord.ui.TextDisplay(
             f"Welcome {interaction.user.mention}!\n"
             f"Use </gain:1411612232399327293> to start.\n"
