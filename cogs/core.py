@@ -282,10 +282,10 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                         "🔹 Higher levels unlock new features and multipliers"
                     )
                 },
-                "Probabilitize": {
+                "Probabilize": {
                     "title": "First steps",
                     "content": (
-                        "**Probabilitize** is how you will gain quarks:\n\n"
+                        "**Probabilize** is how you will gain quarks:\n\n"
                         "🔹 Has a chance (5% base) to convert energy into quarks!\n"
                         "🔹 You can upgrade the chance using shop upgrades\n"
                         "🔹 You will also need to **differentiate** them later!\n"

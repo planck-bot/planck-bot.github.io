@@ -34,14 +34,14 @@ async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_com
     await interaction.response.send_modal(amount_modal)
 
 @moderate()
-async def probabilitize_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
+async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
     energy = user_data.get('energy', 0) if user_data else 0
 
     if amount > energy:
         container.add_item(discord.ui.TextDisplay(
-            f"You do not have enough energy to probabilitize {amount} energy."
+            f"You do not have enough energy to probabilize {amount} energy."
         ))
         return await interaction.response.send_message(view=view)
 
@@ -85,9 +85,9 @@ async def probabilitize_cb(interaction: discord.Interaction, bot: commands.Bot =
     action_row.add_item(back)
 
     retry.callback = lambda inter: base_modal(inter, bot, False,
-                                              title="Probabilitize Energy",
-                                              placeholder="Enter amount of energy to probabilitize",
-                                              callback=probabilitize_cb,
+                                              title="Probabilize Energy",
+                                              placeholder="Enter amount of energy to probabilize",
+                                              callback=probabilize_cb,
                                               currencies=["energy"])
     back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
@@ -224,16 +224,16 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
     container.add_item(discord.ui.Separator())
     subatomic_row = discord.ui.ActionRow()
 
-    probabilitize = discord.ui.Button(label="Probabilitize")
+    probabilize = discord.ui.Button(label="Probabilize")
 
-    probabilitize.callback = lambda inter: base_modal(inter, bot, False,
-                                              title="Probabilitize Energy",
-                                              placeholder="Enter amount of energy to probabilitize",
-                                              callback=probabilitize_cb,
+    probabilize.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Probabilize Energy",
+                                              placeholder="Enter amount of energy to probabilize",
+                                              callback=probabilize_cb,
                                               currencies=["energy"])
     
     if energy > 0:
-        subatomic_row.add_item(probabilitize)
+        subatomic_row.add_item(probabilize)
 
     differentiate = discord.ui.Button(label="Differentiate")
 
@@ -282,17 +282,17 @@ class SubatomicCog(commands.Cog):
     async def subatomic_command(self, interaction: discord.Interaction):
         await subatomic_cb(interaction, self.bot, True)
 
-    @subatomic_group.command(name="probabilitize", description="Attempt to create quarks")
+    @subatomic_group.command(name="probabilize", description="Attempt to create quarks")
     @app_commands.describe(amount="The amount to attempt")
-    async def probabilitize_command(self, interaction: discord.Interaction, amount: int = 0):
+    async def probabilize_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
             await base_modal(interaction, self.bot, False,
-                             title="Probabilitize Energy",
-                             placeholder="Enter amount of energy to probabilitize",
-                             callback=probabilitize_cb,
+                             title="Probabilize Energy",
+                             placeholder="Enter amount of energy to probabilize",
+                             callback=probabilize_cb,
                              currencies=["energy"])
         else:
-            await probabilitize_cb(interaction, self.bot, True)
+            await probabilize_cb(interaction, self.bot, True)
 
     @subatomic_group.command(name="differentiate", description="Differentiate quarks into specific types")
     @app_commands.describe(amount="The amount to differentiate")
