@@ -37,6 +37,11 @@ def moderate():
                 return
             
             from cogs.core import captcha_manager
+
+            if await captcha_manager.should_get_captcha(user_id):
+                if user_id not in captcha_manager.active_captchas:
+                    await captcha_manager.create_captcha(user_id)
+
             if user_id in captcha_manager.active_captchas:
                 view, container = await base_view(interaction)
                 
@@ -126,10 +131,13 @@ class Captcha:
     async def should_get_captcha(self, user_id: int) -> bool:
         if user_id not in self.last_captcha_time:
             return True
-        
-        min_interval = 1800 + random.randint(0, 900)
         time_since_last = time.time() - self.last_captcha_time[user_id]
-        return time_since_last >= min_interval
+        if time_since_last < 1800:
+            return False
+
+        extra_minutes = (time_since_last - 1800) // 60
+        chance = min(1.0, 0.50 + 0.05 * extra_minutes)
+        return random.random() < chance
     
     async def get_time_until_next_captcha(self, user_id: int) -> int:
         if user_id not in self.last_captcha_time:
@@ -205,7 +213,9 @@ class Captcha:
             try:
                 fonts.append(ImageFont.truetype("arial.ttf", 32))
             except:
-                fonts.append(ImageFont.load_default())
+                default_font = ImageFont.load_default()
+                font = default_font.font_variant(size=32)
+                fonts.append(font)
         
         font = random.choice(fonts)
         
@@ -315,7 +325,8 @@ class Captcha:
             "created_at": current_time
         }
         
-        self.last_captcha_time[user_id] = current_time
+        if force or user_id not in self.last_captcha_time:
+            self.last_captcha_time[user_id] = current_time
         
         return {
             "success": True,
@@ -360,6 +371,8 @@ class Captcha:
         
         if user_input.strip() == captcha_data["text"]:
             del self.active_captchas[user_id]
+
+            self.last_captcha_time[user_id] = time.time()
             return {"success": True, "message": "Captcha solved successfully!", "action": "success"}
         
         captcha_data["attempts"] += 1

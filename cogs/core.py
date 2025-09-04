@@ -52,7 +52,7 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
         container.add_item(discord.ui.TextDisplay(
             f"Please wait {2 - (now - last_gain):.2f}s before gaining again."
         ))
-        ephemeral = True
+        return await interaction.response.send_message(view=view, ephemeral=True)
     else:        
         profile_data = await get_user_data("profile", user_id)
         if profile_data:
@@ -454,14 +454,8 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
         back_row.add_item(back)
         container.add_item(back_row)
 
-    if is_command:
-        if interaction.response.is_done():
-            await interaction.followup.send(view=view)
-        else:
-            await interaction.response.send_message(view=view)
-    else:
-        # unreliable is_done()
-        await cb(interaction, view, is_command)
+
+    await cb(interaction, view, is_command)
 
 async def help_stage_select_cb(interaction: discord.Interaction, bot: commands.Bot):
     """Handle stage selection from the dropdown"""
@@ -502,17 +496,66 @@ class GlobalCog(commands.Cog):
     async def ticket_command(self, interaction: discord.Interaction, report_type: str, reason_or_evidence: str):
         ...
 
+    async def _create_captcha_view(self, interaction: discord.Interaction, components=None, title=None, message=None, file=None, show_regenerate=True):
+        view, container = await base_view(interaction)
+        
+        if title or message:
+            text = []
+            if title:
+                text.append(f"**{title}**")
+            if message:
+                text.append(message)
+            container.add_item(discord.ui.TextDisplay("\n\n".join(text)))
+        
+        if components:
+            container.add_item(components[0])
+            container.add_item(components[1])
+            container.add_item(discord.ui.TextDisplay(
+                "-# Captchas are case sensitive. Make sure images are enabled in discord settings "
+                "(Settings > App Settings > Chat > Display Images)"
+            ))
+            
+        if show_regenerate:
+            container.add_item(discord.ui.Separator())
+            action_row = discord.ui.ActionRow()
+            regen_button = discord.ui.Button(label="Regenerate Captcha")
+            regen_button.callback = lambda inter: self._handle_regenerate(inter, interaction.user.id)
+            action_row.add_item(regen_button)
+            container.add_item(action_row)
+            
+        return view, container, file
+
+    async def _handle_regenerate(self, interaction: discord.Interaction, user_id: int):
+        if interaction.user.id != user_id:
+            await interaction.response.send_message(
+                "This is not your captcha!", ephemeral=True
+            )
+            return
+            
+        result = await captcha_manager.regenerate_captcha(user_id)
+        if result["success"]:
+            components, file = await captcha_manager.get_captcha_container_and_file(user_id)
+            view, _, _ = await self._create_captcha_view(
+                interaction,
+                components=components,
+                file=file
+            )
+            await interaction.response.edit_message(view=view, attachments=[file])
+        else:
+            await interaction.response.send_message(result["message"], ephemeral=True)
+
     @universal_command(name="verify", description="Verify a captcha or regenerate it")
     @app_commands.describe(captcha="Enter the captcha text or 'REGEN' to regenerate")
     async def verify_command(self, interaction: discord.Interaction, captcha: str):
         user_id = interaction.user.id
         
         if user_id not in captcha_manager.active_captchas:
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                "**No Active Captcha**\n\n"
-                "You don't have an active captcha."
-            ))
+            view, _, _ = await self._create_captcha_view(
+                interaction,
+                title="No Active Captcha",
+                message="You don't have an active captcha.",
+                show_regenerate=False
+            )
             await cb(interaction, view, True)
             return
         
@@ -520,139 +563,62 @@ class GlobalCog(commands.Cog):
             result = await captcha_manager.regenerate_captcha(user_id)
             if result["success"]:
                 components, file = await captcha_manager.get_captcha_container_and_file(user_id)
-                
-                view, container = await base_view(interaction)
-                container.add_item(components[0])
-                container.add_item(components[1])
-                container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
-                container.add_item(discord.ui.TextDisplay("**Captcha regenerated!**"))
-                
-                container.add_item(discord.ui.Separator())
-                action_row = discord.ui.ActionRow()
-                
-                regen_button = discord.ui.Button(label="Regenerate Captcha")
-                
-                async def regenerate_captcha_callback(inter):
-                    if inter.user.id != user_id:
-                        await inter.response.send_message("This is not your captcha!", ephemeral=True)
-                        return
-                        
-                    regen_result = await captcha_manager.regenerate_captcha(user_id)
-                    if regen_result["success"]:
-                        new_components, new_file = await captcha_manager.get_captcha_container_and_file(user_id)
-                        
-                        new_view, new_container = await base_view(inter)
-                        new_container.add_item(new_components[0])
-                        new_container.add_item(new_components[1])
-                        new_container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
-                        
-                        new_container.add_item(discord.ui.Separator())
-                        new_action_row = discord.ui.ActionRow()
-                        new_regen_button = discord.ui.Button(label="Regenerate Captcha")
-                        new_regen_button.callback = regenerate_captcha_callback
-                        new_action_row.add_item(new_regen_button)
-                        new_container.add_item(new_action_row)
-                        
-                        await inter.response.edit_message(view=new_view, attachments=[new_file])
-                    else:
-                        await inter.response.send_message(regen_result["message"], ephemeral=True)
-                
-                regen_button.callback = regenerate_captcha_callback
-                action_row.add_item(regen_button)
-                container.add_item(action_row)
-                
-                await interaction.response.send_message(view=view, files=[file], ephemeral=True)
+                view, container, _ = await self._create_captcha_view(
+                    interaction,
+                    components=components,
+                    title="Captcha Regenerated",
+                    file=file
+                )
+                await interaction.response.send_message(view=view, files=[file])
             else:
-                view, container = await base_view(interaction)
-                container.add_item(discord.ui.TextDisplay(
-                    f"**Regeneration Failed**\n\n{result['message']}"
-                ))
+                view, container, _ = await self._create_captcha_view(
+                    interaction,
+                    title="Regeneration Failed",
+                    message=result["message"],
+                    show_regenerate=False
+                )
                 await cb(interaction, view, True)
             return
         
         result = await captcha_manager.verify_captcha(user_id, captcha)
+        action = result["action"]
         
-        if result["action"] == "success":
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                f"**Captcha Solved!**\n\n{result['message']} You can now use bot commands normally."
-            ))
-            await cb(interaction, view, True)
-            
-        elif result["action"] == "banned":
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                f"**Banned**\n\n{result['message']}"
-            ))
-            await cb(interaction, view, True)
-            
-        elif result["action"] == "expired":
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                f"**Captcha Expired**\n\n{result['message']} Contact an administrator for a new one."
-            ))
-            await cb(interaction, view, True)
-            
-        elif result["action"] == "auto_regen":
-            components, file = await captcha_manager.get_captcha_container_and_file(user_id)
-            
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                f"**Auto-Regenerated**\n\n{result['message']}"
-            ))
-            
-            await interaction.response.send_message(view=view, ephemeral=True)
-            
-            new_view, new_container = await base_view(interaction)
-            new_container.add_item(components[0])
-            new_container.add_item(components[1])
-            new_container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
-            
-            new_container.add_item(discord.ui.Separator())
-            action_row = discord.ui.ActionRow()
-            
-            regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
-            
-            async def regenerate_captcha_callback(inter):
-                if inter.user.id != user_id:
-                    await inter.response.send_message("This is not your captcha!", ephemeral=True)
-                    return
-                    
-                regen_result = await captcha_manager.regenerate_captcha(user_id)
-                if regen_result["success"]:
-                    new_components, new_file = await captcha_manager.get_captcha_container_and_file(user_id)
-                    
-                    updated_view, updated_container = await base_view(inter)
-                    updated_container.add_item(new_components[0])
-                    updated_container.add_item(new_components[1])
-                    updated_container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
-                    
-                    updated_container.add_item(discord.ui.Separator())
-                    updated_action_row = discord.ui.ActionRow()
-                    updated_regen_button = discord.ui.Button(label="Regenerate Captcha")
-                    updated_regen_button.callback = regenerate_captcha_callback
-                    updated_action_row.add_item(updated_regen_button)
-                    updated_container.add_item(updated_action_row)
-                    
-                    await inter.response.edit_message(view=updated_view, attachments=[new_file])
-                else:
-                    await inter.response.send_message(regen_result["message"], ephemeral=True)
-            
-            regen_button.callback = regenerate_captcha_callback
-            action_row.add_item(regen_button)
-            new_container.add_item(action_row)
-            
-            await interaction.followup.send(
-                view=new_view,
-                files=[file],
-                ephemeral=True
+        if action == "auto_regen":
+            view, _, _ = await self._create_captcha_view(
+                interaction,
+                title="Auto-Regenerated",
+                message=result["message"],
+                show_regenerate=False
             )
+            await interaction.response.send_message(view=view)
             
-        elif result["action"] == "retry":
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                f"**Incorrect**\n\n{result['message']}"
-            ))
+            components, file = await captcha_manager.get_captcha_container_and_file(user_id)
+            view, _, _ = await self._create_captcha_view(
+                interaction,
+                components=components,
+                file=file
+            )
+            await interaction.followup.send(view=view, files=[file])
+        else:
+            titles = {
+                "success": "Captcha Solved",
+                "banned": "Banned",
+                "expired": "Captcha Expired",
+                "retry": "Incorrect"
+            }
+            messages = {
+                "success": f"{result['message']} You can now use bot commands normally.",
+                "expired": f"{result['message']} Contact an administrator for a new one.",
+                "banned": result["message"],
+                "retry": result["message"]
+            }
+
+            view, _, _ = await self._create_captcha_view(
+                interaction,
+                title=titles.get(action, "Error"),
+                message=messages.get(action, result.get("message", "Unknown error")),
+                show_regenerate=False
+            )
             await cb(interaction, view, True)
 
 async def setup(bot: commands.Bot):
