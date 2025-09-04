@@ -1,23 +1,23 @@
+import random
+import time
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-import time
-import random
-
 from utils import (
-    universal_command, 
-    base_view, 
-    add_data, 
-    insert_data, 
-    calculate_level_from_xp, 
-    get_user_data, 
-    full_multipliers, 
-    full_chances, 
-    cb, 
-    get_version, 
-    Captcha, 
-    moderate
+    Captcha,
+    add_data,
+    base_view,
+    calculate_level_from_xp,
+    cb,
+    full_chances,
+    full_multipliers,
+    get_user_data,
+    get_version,
+    insert_data,
+    moderate,
+    universal_command,
 )
 
 start = time.time()
@@ -505,10 +505,8 @@ class GlobalCog(commands.Cog):
     @universal_command(name="verify", description="Verify a captcha or regenerate it")
     @app_commands.describe(captcha="Enter the captcha text or 'REGEN' to regenerate")
     async def verify_command(self, interaction: discord.Interaction, captcha: str):
-        """Verify captcha or regenerate it"""
         user_id = interaction.user.id
         
-        # Check if user has an active captcha
         if user_id not in captcha_manager.active_captchas:
             view, container = await base_view(interaction)
             container.add_item(discord.ui.TextDisplay(
@@ -518,23 +516,21 @@ class GlobalCog(commands.Cog):
             await cb(interaction, view, True)
             return
         
-        # Check if user wants to regenerate
         if captcha.upper() == "REGEN":
             result = await captcha_manager.regenerate_captcha(user_id)
             if result["success"]:
-                # Generate new image
                 components, file = await captcha_manager.get_captcha_container_and_file(user_id)
                 
                 view, container = await base_view(interaction)
-                container.add_item(components[0])  # Text display
-                container.add_item(components[1])  # Media gallery
-                container.add_item(discord.ui.TextDisplay("✅ **Captcha regenerated!**"))
+                container.add_item(components[0])
+                container.add_item(components[1])
+                container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
+                container.add_item(discord.ui.TextDisplay("**Captcha regenerated!**"))
                 
-                # Add regenerate button
                 container.add_item(discord.ui.Separator())
                 action_row = discord.ui.ActionRow()
                 
-                regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
+                regen_button = discord.ui.Button(label="Regenerate Captcha")
                 
                 async def regenerate_captcha_callback(inter):
                     if inter.user.id != user_id:
@@ -543,18 +539,16 @@ class GlobalCog(commands.Cog):
                         
                     regen_result = await captcha_manager.regenerate_captcha(user_id)
                     if regen_result["success"]:
-                        # Generate new image
                         new_components, new_file = await captcha_manager.get_captcha_container_and_file(user_id)
                         
-                        # Create new container with updated captcha info
                         new_view, new_container = await base_view(inter)
-                        new_container.add_item(new_components[0])  # Text display
-                        new_container.add_item(new_components[1])  # Media gallery
+                        new_container.add_item(new_components[0])
+                        new_container.add_item(new_components[1])
+                        new_container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
                         
-                        # Add regenerate button again
                         new_container.add_item(discord.ui.Separator())
                         new_action_row = discord.ui.ActionRow()
-                        new_regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
+                        new_regen_button = discord.ui.Button(label="Regenerate Captcha")
                         new_regen_button.callback = regenerate_captcha_callback
                         new_action_row.add_item(new_regen_button)
                         new_container.add_item(new_action_row)
@@ -571,12 +565,11 @@ class GlobalCog(commands.Cog):
             else:
                 view, container = await base_view(interaction)
                 container.add_item(discord.ui.TextDisplay(
-                    f"**❌ Regeneration Failed**\n\n{result['message']}"
+                    f"**Regeneration Failed**\n\n{result['message']}"
                 ))
                 await cb(interaction, view, True)
             return
         
-        # Verify the captcha
         result = await captcha_manager.verify_captcha(user_id, captcha)
         
         if result["action"] == "success":
@@ -601,7 +594,6 @@ class GlobalCog(commands.Cog):
             await cb(interaction, view, True)
             
         elif result["action"] == "auto_regen":
-            # Send new captcha automatically
             components, file = await captcha_manager.get_captcha_container_and_file(user_id)
             
             view, container = await base_view(interaction)
@@ -611,12 +603,11 @@ class GlobalCog(commands.Cog):
             
             await interaction.response.send_message(view=view, ephemeral=True)
             
-            # Send the new captcha as a followup with regenerate button
             new_view, new_container = await base_view(interaction)
-            new_container.add_item(components[0])  # Text display
-            new_container.add_item(components[1])  # Media gallery
+            new_container.add_item(components[0])
+            new_container.add_item(components[1])
+            new_container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
             
-            # Add regenerate button
             new_container.add_item(discord.ui.Separator())
             action_row = discord.ui.ActionRow()
             
@@ -629,18 +620,16 @@ class GlobalCog(commands.Cog):
                     
                 regen_result = await captcha_manager.regenerate_captcha(user_id)
                 if regen_result["success"]:
-                    # Generate new image
                     new_components, new_file = await captcha_manager.get_captcha_container_and_file(user_id)
                     
-                    # Create new container with updated captcha info
                     updated_view, updated_container = await base_view(inter)
-                    updated_container.add_item(new_components[0])  # Text display
-                    updated_container.add_item(new_components[1])  # Media gallery
+                    updated_container.add_item(new_components[0])
+                    updated_container.add_item(new_components[1])
+                    updated_container.add_item(discord.ui.TextDisplay("-# Captchas are case sensitive. Make sure images are enabled in discord settings (Settings > App Settings > Chat > Display Images)"))
                     
-                    # Add regenerate button again
                     updated_container.add_item(discord.ui.Separator())
                     updated_action_row = discord.ui.ActionRow()
-                    updated_regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
+                    updated_regen_button = discord.ui.Button(label="Regenerate Captcha")
                     updated_regen_button.callback = regenerate_captcha_callback
                     updated_action_row.add_item(updated_regen_button)
                     updated_container.add_item(updated_action_row)
@@ -663,27 +652,6 @@ class GlobalCog(commands.Cog):
             view, container = await base_view(interaction)
             container.add_item(discord.ui.TextDisplay(
                 f"**Incorrect**\n\n{result['message']}"
-            ))
-            await cb(interaction, view, True)
-
-    @app_commands.describe(user="User to create captcha for")
-    @universal_command(name="create_captcha", description="Create a captcha for a user")
-    async def create_captcha_command(self, interaction: discord.Interaction, user: discord.User):
-        user_id = user.id
-        
-        # Force create a new captcha
-        result = await captcha_manager.create_captcha(user_id, force=True)
-        if result["success"]:
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                f"**Captcha Created**\n\n"
-                f"A captcha has been created for {user.mention}. They must solve it before using bot commands."
-            ))
-            await cb(interaction, view, True)
-        else:
-            view, container = await base_view(interaction)
-            container.add_item(discord.ui.TextDisplay(
-                f"**Failed to Create Captcha**\n\n{result['message']}"
             ))
             await cb(interaction, view, True)
 
