@@ -1,12 +1,30 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+import functools
+import asyncio
+import io
 
 import time
 import random
 
-from utils import universal_command, base_view, add_data, insert_data, calculate_level_from_xp, get_user_data, full_multipliers, full_chances, cb, get_version
+from utils import (
+    universal_command, 
+    base_view, 
+    add_data, 
+    insert_data, 
+    calculate_level_from_xp, 
+    get_user_data, 
+    full_multipliers, 
+    full_chances, 
+    cb, 
+    get_version, 
+    Captcha, 
+    moderate
+)
+
 start = time.time()
+captcha_manager = Captcha()
 
 async def check_page_requirements(user_id: int, requirements: dict) -> bool:
     """Check if a user meets the currency requirements for a page"""
@@ -24,6 +42,7 @@ async def check_page_requirements(user_id: int, requirements: dict) -> bool:
     
     return True
 
+@moderate()
 async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
     user_id = interaction.user.id
     view, container = await base_view(interaction)
@@ -82,7 +101,6 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
 
         gain_text += f"\n+{total_xp:,} EXP"
         container.add_item(discord.ui.TextDisplay(gain_text))
-        ephemeral = False
 
     container.add_item(discord.ui.Separator())
     action_row = discord.ui.ActionRow()
@@ -97,11 +115,10 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
     menu.callback = lambda inter: menu_cb(inter, bot)
 
     container.add_item(action_row)
-    if interaction.response.is_done():
-        await interaction.followup.send(view=view, ephemeral=ephemeral)
-    else:
-        await interaction.response.send_message(view=view, ephemeral=ephemeral)
 
+    await cb(interaction, view, True)
+
+@moderate()
 async def profile_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     user_id = interaction.user.id
     
@@ -131,6 +148,7 @@ async def profile_cb(interaction: discord.Interaction, bot: commands.Bot = None,
     container.add_item(action_row)
     await cb(interaction, view, is_command)
 
+@moderate()
 async def info_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     view, container = await base_view(interaction)
 
@@ -162,6 +180,7 @@ async def info_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
     container.add_item(action_row)
     await cb(interaction, view, is_command)
 
+@moderate()
 async def menu_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     from .shop import shop_cb
     from .subatomic import subatomic_cb
@@ -204,6 +223,7 @@ async def menu_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
     container.add_item(action_row)
     await cb(interaction, view, is_command)
 
+@moderate()
 async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     view, container = await base_view(interaction)
 
@@ -223,6 +243,7 @@ async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = N
     container.add_item(action_row)
     await cb(interaction, view, is_command)
 
+@moderate()
 async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False, stage: str = None, page = "Main"):
     view, container = await base_view(interaction)
 
@@ -483,6 +504,191 @@ class GlobalCog(commands.Cog):
     @app_commands.describe(report_type="The type of ticket (report/appeal)", reason_or_evidence="The reason or evidence for the ticket")
     async def ticket_command(self, interaction: discord.Interaction, report_type: str, reason_or_evidence: str):
         ...
+
+    @universal_command(name="verify", description="Verify a captcha or regenerate it")
+    @app_commands.describe(captcha="Enter the captcha text or 'REGEN' to regenerate")
+    async def verify_command(self, interaction: discord.Interaction, captcha: str):
+        """Verify captcha or regenerate it"""
+        user_id = interaction.user.id
+        
+        # Check if user has an active captcha
+        if user_id not in captcha_manager.active_captchas:
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                "**No Active Captcha**\n\n"
+                "You don't have an active captcha."
+            ))
+            await cb(interaction, view, True)
+            return
+        
+        # Check if user wants to regenerate
+        if captcha.upper() == "REGEN":
+            result = await captcha_manager.regenerate_captcha(user_id)
+            if result["success"]:
+                # Generate new image
+                components, file = await captcha_manager.get_captcha_container_and_file(user_id)
+                
+                view, container = await base_view(interaction)
+                container.add_item(components[0])  # Text display
+                container.add_item(components[1])  # Media gallery
+                container.add_item(discord.ui.TextDisplay("✅ **Captcha regenerated!**"))
+                
+                # Add regenerate button
+                container.add_item(discord.ui.Separator())
+                action_row = discord.ui.ActionRow()
+                
+                regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
+                
+                async def regenerate_captcha_callback(inter):
+                    if inter.user.id != user_id:
+                        await inter.response.send_message("This is not your captcha!", ephemeral=True)
+                        return
+                        
+                    regen_result = await captcha_manager.regenerate_captcha(user_id)
+                    if regen_result["success"]:
+                        # Generate new image
+                        new_components, new_file = await captcha_manager.get_captcha_container_and_file(user_id)
+                        
+                        # Create new container with updated captcha info
+                        new_view, new_container = await base_view(inter)
+                        new_container.add_item(new_components[0])  # Text display
+                        new_container.add_item(new_components[1])  # Media gallery
+                        
+                        # Add regenerate button again
+                        new_container.add_item(discord.ui.Separator())
+                        new_action_row = discord.ui.ActionRow()
+                        new_regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
+                        new_regen_button.callback = regenerate_captcha_callback
+                        new_action_row.add_item(new_regen_button)
+                        new_container.add_item(new_action_row)
+                        
+                        await inter.response.edit_message(view=new_view, attachments=[new_file])
+                    else:
+                        await inter.response.send_message(regen_result["message"], ephemeral=True)
+                
+                regen_button.callback = regenerate_captcha_callback
+                action_row.add_item(regen_button)
+                container.add_item(action_row)
+                
+                await interaction.response.send_message(view=view, files=[file], ephemeral=True)
+            else:
+                view, container = await base_view(interaction)
+                container.add_item(discord.ui.TextDisplay(
+                    f"**❌ Regeneration Failed**\n\n{result['message']}"
+                ))
+                await cb(interaction, view, True)
+            return
+        
+        # Verify the captcha
+        result = await captcha_manager.verify_captcha(user_id, captcha)
+        
+        if result["action"] == "success":
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                f"**Captcha Solved!**\n\n{result['message']} You can now use bot commands normally."
+            ))
+            await cb(interaction, view, True)
+            
+        elif result["action"] == "banned":
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                f"**Banned**\n\n{result['message']}"
+            ))
+            await cb(interaction, view, True)
+            
+        elif result["action"] == "expired":
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                f"**Captcha Expired**\n\n{result['message']} Contact an administrator for a new one."
+            ))
+            await cb(interaction, view, True)
+            
+        elif result["action"] == "auto_regen":
+            # Send new captcha automatically
+            components, file = await captcha_manager.get_captcha_container_and_file(user_id)
+            
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                f"**Auto-Regenerated**\n\n{result['message']}"
+            ))
+            
+            await interaction.response.send_message(view=view, ephemeral=True)
+            
+            # Send the new captcha as a followup with regenerate button
+            new_view, new_container = await base_view(interaction)
+            new_container.add_item(components[0])  # Text display
+            new_container.add_item(components[1])  # Media gallery
+            
+            # Add regenerate button
+            new_container.add_item(discord.ui.Separator())
+            action_row = discord.ui.ActionRow()
+            
+            regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
+            
+            async def regenerate_captcha_callback(inter):
+                if inter.user.id != user_id:
+                    await inter.response.send_message("This is not your captcha!", ephemeral=True)
+                    return
+                    
+                regen_result = await captcha_manager.regenerate_captcha(user_id)
+                if regen_result["success"]:
+                    # Generate new image
+                    new_components, new_file = await captcha_manager.get_captcha_container_and_file(user_id)
+                    
+                    # Create new container with updated captcha info
+                    updated_view, updated_container = await base_view(inter)
+                    updated_container.add_item(new_components[0])  # Text display
+                    updated_container.add_item(new_components[1])  # Media gallery
+                    
+                    # Add regenerate button again
+                    updated_container.add_item(discord.ui.Separator())
+                    updated_action_row = discord.ui.ActionRow()
+                    updated_regen_button = discord.ui.Button(label="Regenerate Captcha", style=discord.ButtonStyle.secondary, emoji="🔄")
+                    updated_regen_button.callback = regenerate_captcha_callback
+                    updated_action_row.add_item(updated_regen_button)
+                    updated_container.add_item(updated_action_row)
+                    
+                    await inter.response.edit_message(view=updated_view, attachments=[new_file])
+                else:
+                    await inter.response.send_message(regen_result["message"], ephemeral=True)
+            
+            regen_button.callback = regenerate_captcha_callback
+            action_row.add_item(regen_button)
+            new_container.add_item(action_row)
+            
+            await interaction.followup.send(
+                view=new_view,
+                files=[file],
+                ephemeral=True
+            )
+            
+        elif result["action"] == "retry":
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                f"**Incorrect**\n\n{result['message']}"
+            ))
+            await cb(interaction, view, True)
+
+    @app_commands.describe(user="User to create captcha for")
+    @universal_command(name="create_captcha", description="Create a captcha for a user")
+    async def create_captcha_command(self, interaction: discord.Interaction, user: discord.User):
+        user_id = user.id
+        
+        # Force create a new captcha
+        result = await captcha_manager.create_captcha(user_id, force=True)
+        if result["success"]:
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                f"**Captcha Created**\n\n"
+                f"A captcha has been created for {user.mention}. They must solve it before using bot commands."
+            ))
+            await cb(interaction, view, True)
+        else:
+            view, container = await base_view(interaction)
+            container.add_item(discord.ui.TextDisplay(
+                f"**Failed to Create Captcha**\n\n{result['message']}"
+            ))
+            await cb(interaction, view, True)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(GlobalCog(bot))

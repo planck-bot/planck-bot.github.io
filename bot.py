@@ -104,6 +104,18 @@ async def watch_cogs():
         observer.stop()
         observer.join()
 
+async def cleanup_expired_captchas_task():
+    await bot.wait_until_ready()
+    
+    while not bot.is_closed():
+        try:
+            from cogs.core import captcha_manager
+            await captcha_manager.cleanup_expired_captchas()
+        except Exception as e:
+            print(f"Error in captcha cleanup task: {e}")
+        
+        await asyncio.sleep(30)
+
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
@@ -119,6 +131,7 @@ async def on_ready():
         print(f"Failed to sync commands: {e}")
 
     bot.loop.create_task(watch_cogs())
+    bot.loop.create_task(cleanup_expired_captchas_task())
 
 @bot.event
 async def on_message(message):
