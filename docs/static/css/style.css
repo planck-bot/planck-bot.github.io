@@ -8,7 +8,7 @@
 :root {
     --primary-color: #5865f2;
     --secondary-color: #4f46e5;
-    --accent-color: #00d4aa;
+    --accent-color: #5865F2;
     --text-primary: #ffffff;
     --text-secondary: #b9bbbe;
     --text-dark: #2c2f33;
@@ -239,7 +239,7 @@ h1, h2, h3, h4, h5, h6 {
     bottom: 0;
     background: 
         radial-gradient(circle at 20% 80%, rgba(88, 101, 242, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(0, 212, 170, 0.1) 0%, transparent 50%);
+        radial-gradient(circle at 80% 20%, rgba(88, 101, 242, 0.1) 0%, transparent 50%);
     pointer-events: none;
 }
 
