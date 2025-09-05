@@ -343,37 +343,37 @@ class SubatomicCog(commands.Cog):
     @app_commands.describe(amount="The amount to probabilize")
     async def probabilize_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
+            await probabilize_cb(interaction, self.bot, amount)
+        else:
             await base_modal(interaction, self.bot, False,
                              title="Probabilize Energy",
                              placeholder="Enter amount of energy to probabilize",
                              callback=probabilize_cb,
                              currencies=["energy"])
-        else:
-            await probabilize_cb(interaction, self.bot, True)
 
     @subatomic_group.command(name="differentiate", description="Differentiate quarks into specific types")
     @app_commands.describe(amount="The amount to differentiate (Requires 250 energy per quark)")
     async def differentiate_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
+            await differentiate_cb(interaction, self.bot, amount)
+        else:
             await base_modal(interaction, self.bot, False,
                              title="Differentiate Quarks",
                              placeholder="Enter amount of quarks to differentiate",
                              callback=differentiate_cb,
                              currencies=["quarks", "energy"])
-        else:
-            await differentiate_cb(interaction, self.bot, True)
 
     @subatomic_group.command(name="condense", description="Condense electrons into energy")
     @app_commands.describe(amount="The amount to condense (1000 energy = 1 electron)")
     async def condense_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
+            await condense_cb(interaction, self.bot, amount)
+        else:
             await base_modal(interaction, self.bot, False,
                              title="Condense Electrons",
                              placeholder="Enter amount of electrons to condense",
                              callback=condense_cb,
                              currencies=["energy"])
-        else:
-            await condense_cb(interaction, self.bot, True)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(SubatomicCog(bot))
