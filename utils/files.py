@@ -106,14 +106,14 @@ async def update_data(table: str, data: Dict[str, Any], where_column: str, where
         ''', list(data.values()) + [where_value])
         await db.commit()
 
-async def get_user_data(table: str, user_id: int, default: Any = False) -> Union[Dict[str, Any], Any]:
+async def get_user_data(table: str, user_id: int, default: Any = None) -> Union[Dict[str, Any], Any]:
     """
     Get a single user's data from a table.
     
     Args:
         table: Table name
         user_id: Discord user ID
-        default: The default value to return if user not found (if False, returns None)
+        default: The default value to return if user not found (if None, returns None)
         
     Returns:
         Dictionary with column names as keys and values, or default if not found
