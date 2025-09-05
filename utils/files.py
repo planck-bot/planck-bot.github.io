@@ -1,7 +1,7 @@
 import json
 import aiofiles
 import aiosqlite
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 async def read_json(file_path: str) -> Optional[Dict[str, Any]]:
     try:
@@ -106,16 +106,17 @@ async def update_data(table: str, data: Dict[str, Any], where_column: str, where
         ''', list(data.values()) + [where_value])
         await db.commit()
 
-async def get_user_data(table: str, user_id: int) -> Optional[Dict[str, Any]]:
+async def get_user_data(table: str, user_id: int, default: Any = False) -> Union[Dict[str, Any], Any]:
     """
     Get a single user's data from a table.
     
     Args:
         table: Table name
         user_id: Discord user ID
+        default: The default value to return if user not found (if False, returns None)
         
     Returns:
-        Dictionary with column names as keys and values, or None if not found
+        Dictionary with column names as keys and values, or default if not found
     """
     async with aiosqlite.connect(DB_PATH) as db:
         await _ensure_table_exists(db, table)
@@ -125,7 +126,8 @@ async def get_user_data(table: str, user_id: int) -> Optional[Dict[str, Any]]:
             if row:
                 column_names = [description[0] for description in cursor.description]
                 return dict(zip(column_names, row))
-            return None
+            return default
+    return default # it should never reach here
 
 async def get_all_data(table: str) -> List[Dict[str, Any]]:
     """

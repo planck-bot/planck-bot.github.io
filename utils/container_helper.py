@@ -23,7 +23,7 @@ async def base_view(interaction: discord.Interaction) -> Tuple[discord.ui.Layout
             "**Rules**:\n"
             "-# 1. No macroing. This will result in a permanent ban.\n"
             "-# 2. No exploiting bugs. Ban reason depends on the severity.\n"
-            "You may report bugs/appeal bans using </ticket:1411940922333200497>"
+            "You may report bugs/appeal bans using </ticket:1412981220635312253>"
         ))
         container.add_item(discord.ui.Separator())
 

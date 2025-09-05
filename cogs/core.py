@@ -23,21 +23,15 @@ from utils import (
 start = time.time()
 captcha_manager = Captcha()
 
-async def check_page_requirements(user_id: int, requirements: dict) -> bool:
-    """Check if a user meets the currency requirements for a page"""
-    if not requirements:
+async def check_page_requirements(user_id: int, requirement: str = None) -> bool:
+    """Check if a user has completed the required tutorial"""
+    if not requirement:
         return True
     
-    user_currency = await get_user_data("currency", user_id)
-    if not user_currency:
-        return False
+    profile = await get_user_data("profile", user_id, {})
+    tutorials = profile.get("tutorials", [])
     
-    for currency, required_amount in requirements.items():
-        user_amount = user_currency.get(currency, 0)
-        if user_amount < required_amount:
-            return False
-    
-    return True
+    return requirement in tutorials
 
 @moderate()
 async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
@@ -240,7 +234,7 @@ async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = N
     container.add_item(action_row)
     await cb(interaction, view, is_command)
 
-@moderate()
+# @moderate()
 async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False, stage: str = None, page = "Main"):
     view, container = await base_view(interaction)
 
@@ -263,8 +257,8 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                     "title": "Regular Shop",
                     "content": (
                         "This is the regular shop!\n\n"
-                        "🔹 You will only use energy and quarks here\n"
-                        "🔹 Upgrades may seem small, but they add up!"
+                        "┌─You will only use energy and quarks here\n"
+                        "└─Upgrades may seem small, but they add up!"
                     )
                 }
             }
@@ -276,54 +270,49 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                     "title": "Getting Started",
                     "content": (
                         "Welcome to the subatomic stage! This is the beginning of the game.\n\n"
-                        "🔹 Use </gain:1411612232399327293> to start gaining energy\n"
-                        "🔹 Energy is the basic currency in this stage\n"
-                        "🔹 Gain experience (XP) with each action to level up\n"
-                        "🔹 Higher levels unlock new features and multipliers"
+                        "┌─Use </gain:1412981220635312249> to start gaining energy\n"
+                        "├─Energy is the basic currency in this stage\n"
+                        "├─Gain experience (XP) with each action to level up\n"
+                        "└─ └─Higher levels unlock new features and multipliers"
                     )
                 },
                 "Probabilize": {
                     "title": "First steps",
                     "content": (
-                        "**Probabilize** is how you will gain quarks:\n\n"
-                        "🔹 Has a chance (5% base) to convert energy into quarks!\n"
-                        "🔹 You can upgrade the chance using shop upgrades\n"
-                        "🔹 You will also need to **differentiate** them later!\n"
+                        "</subatomic probabilize:1412151005088448542> is how you will gain quarks!\n\n"
+                        "┌─Has a chance (5% base) to convert energy into quarks!\n"
+                        "│  └─You can upgrade the chance using shop upgrades\n"
+                        "│      └─Some might even allow you to get quarks from </gain:1412981220635312249>!\n"
+                        "└─You will also need to **differentiate** them later!"
                     ),
-                    "requirement": {
-                        "energy": 1
-                    }
+                    "requirement": "probabilize_tutorial"
                 },
                 "Differentiate": {
                     "title": "How to tell apart quarks",
                     "content": (
-                        "**Differentiating** is how you will tell apart quarks!\n\n"
-                        "🔹 Allows you to create up and down quarks\n"
-                        "🔹 They will be used to create **protons** and **neutrons**\n"
-                        "🔹 You will also unlock more types of quarks later on!\n"
-                        "🔹 Here is the chance table:\n"
-                        "🔹 Up Quarks: 75%\n"
-                        "🔹 Down Quarks: 75%\n"
-                        "🔹 Strange Quarks: 0.1%\n"
-                        "🔹 Charm Quarks: 0.01%\n"
-                        "🔹 Bottom Quarks: 0.01%\n"
-                        "🔹 Top Quarks: 0.001%\n"
+                        "</subatomic differentiate:1412151005088448542> is how you will tell apart quarks!\n\n"
+                        "┌─Allows you to create up and down quarks\n"
+                        "├─They will be used to create **protons** and **neutrons**\n"
+                        "├─You will also unlock more types of quarks later on!\n"
+                        "├─Here is the chance table:\n"
+                        "│  │─Up Quarks: 75%\n"
+                        "│  │─Down Quarks: 75%\n"
+                        "│  │─Strange Quarks: 0.1%\n"
+                        "│  │─Charm Quarks: 0.01%\n"
+                        "│  │─Bottom Quarks: 0.01%\n"
+                        "└─ └─Top Quarks: 0.001%"
                     ),
-                    "requirement": {
-                        "quarks": 1
-                    }
+                    "requirement": "differentiate_tutorial"
                 },
                 "Condenser": {
                     "title": "Zip Zap Electricity",
                     "content": (
-                        "**Condense** energy into electrons!\n\n"
-                        "🔹 Requires a LOT of energy (1000)\n"
-                        "🔹 Electrons will be used to create **atoms** later!\n"
-                        "🔹 There will also be shop items you can buy with them."
+                        "</subatomic condense:1412151005088448542> is how you're going to make electrons\n\n"
+                        "┌─Requires a LOT of energy (1000)\n"
+                        "├─Electrons will be used to create **atoms** later!\n"
+                        "└─There will also be shop items you can buy with them."
                     ),
-                    "requirement": {
-                        "energy": 500
-                    }
+                    "requirement": "condenser_tutorial"
                 }
             }
         }

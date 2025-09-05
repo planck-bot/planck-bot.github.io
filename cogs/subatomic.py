@@ -61,11 +61,21 @@ async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = N
     if quarks > 0:
         await add_data("currency", interaction.user.id, {"quarks": quarks})
 
-    if not start:
+    profile = await get_user_data("profile", interaction.user.id, {})
+    tutorials = profile.get("tutorials", [])
+    
+    if "probabilize_tutorial" not in tutorials:
+        tutorials.append("probabilize_tutorial")
+        await add_data("profile", interaction.user.id, {"tutorials": tutorials})
+        
         container.add_item(discord.ui.TextDisplay(
-            "Congrats on getting your first quark(s)!\n"
-            "Quarks can be differentiated later on to make protons and neutrons!\n"
-            "Have fun and keep exploring the subatomic world!"
+            "Congrats on your first quark!\n"
+            "</subatomic probabilize:1412151005088448542> is how you will gain quarks!\n\n"
+            "┌─Has a chance (5% base) to convert energy into quarks!\n"
+            "│  └─You can upgrade the chance using shop upgrades\n"
+            "│      └─Some might even allow you to get quarks from </gain:1412981220635312249>!\n"
+            "└─You will also need to **differentiate** them later!\n"
+            "-# Use </help:1412981220635312252> to view this again!"
         ))
         container.add_item(discord.ui.Separator())
         start = 0
@@ -127,7 +137,28 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
 
     results = {}
     multiplier = await full_multipliers("quark_differentiation", user=interaction.user)
-
+    profile = await get_user_data("profile", interaction.user.id, {})
+    tutorials = profile.get("tutorials", [])
+    
+    if "differentiate_tutorial" not in tutorials:
+        tutorials.append("differentiate_tutorial")
+        await add_data("profile", interaction.user.id, {"tutorials": tutorials})
+        
+        container.add_item(discord.ui.TextDisplay(
+            "You have obtained your first differentiated quarks!\n"
+            "</subatomic differentiate:1412151005088448542> is how you will tell apart quarks!\n\n"
+            "┌─Allows you to create up and down quarks\n"
+            "├─They will be used to create **protons** and **neutrons**\n"
+            "├─You will also unlock more types of quarks later on!\n"
+            "├─Here is the chance table:\n"
+            "│  │─Up Quarks: 75%\n"
+            "│  │─Down Quarks: 75%\n"
+            "│  │─Strange Quarks: 0.1%\n"
+            "│  │─Charm Quarks: 0.01%\n"
+            "│  │─Bottom Quarks: 0.01%\n"
+            "└─ └─Top Quarks: 0.001%\n"
+            "-# Use </help:1412981220635312252> to view this again!"
+        ))
     for _ in range(amount):
         for quark, chance in QUARK_CHANCES.items():
             chance *= multiplier
@@ -181,6 +212,23 @@ async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None
             f"You do not have enough energy to condense {amount} electrons."
         ))
         return await interaction.response.send_message(view=view)
+
+    profile = await get_user_data("profile", interaction.user.id, {})
+    tutorials = profile.get("tutorials", [])
+    
+    if "condenser_tutorial" not in tutorials:
+        tutorials.append("condenser_tutorial")
+        await add_data("profile", interaction.user.id, {"tutorials": tutorials})
+        
+        container.add_item(discord.ui.TextDisplay(
+            "Congrats on your first electron!\n"
+            "</subatomic condense:1412151005088448542> is how you're going to make electrons\n\n"
+            "┌─Requires a LOT of energy (1000)\n"
+            "├─Electrons will be used to create </subatomic condense:1412151005088448542>tis how you're going to make electrons\n"
+            "└─There will also be shop items you can buy with them.\n"
+            "-# Use </help:1412981220635312252> to view this again!"
+        ))
+        container.add_item(discord.ui.Separator())
 
     await add_data("currency", interaction.user.id, {"energy": -energy_cost, "electrons": amount})
 
@@ -283,7 +331,7 @@ class SubatomicCog(commands.Cog):
         await subatomic_cb(interaction, self.bot, True)
 
     @subatomic_group.command(name="probabilize", description="Attempt to create quarks")
-    @app_commands.describe(amount="The amount to attempt")
+    @app_commands.describe(amount="The amount to probabilize")
     async def probabilize_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
             await base_modal(interaction, self.bot, False,
@@ -295,7 +343,7 @@ class SubatomicCog(commands.Cog):
             await probabilize_cb(interaction, self.bot, True)
 
     @subatomic_group.command(name="differentiate", description="Differentiate quarks into specific types")
-    @app_commands.describe(amount="The amount to differentiate")
+    @app_commands.describe(amount="The amount to differentiate (Requires 250 energy per quark)")
     async def differentiate_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
             await base_modal(interaction, self.bot, False,
@@ -307,7 +355,7 @@ class SubatomicCog(commands.Cog):
             await differentiate_cb(interaction, self.bot, True)
 
     @subatomic_group.command(name="condense", description="Condense electrons into energy")
-    @app_commands.describe(amount="The amount to condense")
+    @app_commands.describe(amount="The amount to condense (1000 energy = 1 electron)")
     async def condense_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
             await base_modal(interaction, self.bot, False,
