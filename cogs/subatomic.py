@@ -83,8 +83,10 @@ async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = N
         container.add_item(discord.ui.Separator())
         start = 0
 
+    user_data = await get_user_data("currency", interaction.user.id)
     container.add_item(discord.ui.TextDisplay(
         f"Energy spent: {amount}\n"
+        f"Energy left: {user_data.get('energy', 0) if user_data else 0}\n"
         f"Quarks gained: {quarks} (total: {start + quarks})\n"
         f"Chance per: {chance}%"
     ))
@@ -92,9 +94,11 @@ async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = N
     container.add_item(discord.ui.Separator())
     action_row = discord.ui.ActionRow()
     retry = discord.ui.Button(label="Retry")
+    retry_amount = discord.ui.Button(label="Retry (Same Amount)")
     back = discord.ui.Button(label="Back")
 
     action_row.add_item(retry)
+    action_row.add_item(retry_amount)
     action_row.add_item(back)
 
     retry.callback = lambda inter: base_modal(inter, bot, False,
@@ -102,8 +106,13 @@ async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = N
                                               placeholder="Enter amount of energy to probabilize",
                                               callback=probabilize_cb,
                                               currencies=["energy"])
+    retry_amount.callback = lambda inter: probabilize_cb(inter, bot, amount)
     back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
+
+    user_data = await get_user_data("currency", interaction.user.id)
+    retry.disabled = 1 > (user_data.get('energy', 0) if user_data else 0)
+    retry_amount.disabled = amount > (user_data.get('energy', 0) if user_data else 0)
 
     await interaction.response.send_message(view=view)
 
@@ -178,22 +187,28 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
 
     if results:
         await add_data("currency", interaction.user.id, results)
+        user_data = await get_user_data("currency", interaction.user.id)
+
         quark_lines = "\n".join([f"+{amount} {quark.replace('_', ' ').title()}(s)" for quark, amount in results.items()])
 
         container.add_item(discord.ui.TextDisplay(
             f"Energy + Quarks spent: {energy_cost} energy + {amount} quarks\n"
+            f"Energy + Quarks left: {user_data.get('energy', 0) if user_data else 0} energy + {user_data.get('quarks', 0) if user_data else 0} quarks\n"
             f"Differentiated Quarks Gained:\n{quark_lines}\n"
             f"Chance Multiplier: {multiplier:.2f}x"
         ))
     else:
+        user_data = await get_user_data("currency", interaction.user.id)
         container.add_item(discord.ui.TextDisplay("Unfortunately, no quarks were gained."))
 
     container.add_item(discord.ui.Separator())
     action_row = discord.ui.ActionRow()
     retry = discord.ui.Button(label="Retry")
+    retry_amount = discord.ui.Button(label="Retry (Same Amount)")
     back = discord.ui.Button(label="Back")
 
     action_row.add_item(retry)
+    action_row.add_item(retry_amount)
     action_row.add_item(back)
 
     retry.callback = lambda inter: base_modal(inter, bot, False,
@@ -201,8 +216,12 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
                                               placeholder="Enter amount of quarks to differentiate",
                                               callback=differentiate_cb,
                                               currencies=["quarks", "energy"])
+    retry_amount.callback = lambda inter: differentiate_cb(inter, bot, amount)
     back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
+
+    retry.disabled = 1 > (user_data.get('quarks', 0) if user_data else 0) or 250 > (user_data.get('energy', 0) if user_data else 0)
+    retry_amount.disabled = amount > (user_data.get('quarks', 0) if user_data else 0) or energy_cost > (user_data.get('energy', 0) if user_data else 0)
 
     await interaction.response.send_message(view=view)
 
@@ -240,27 +259,35 @@ async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None
         container.add_item(discord.ui.Separator())
 
     await add_data("currency", interaction.user.id, {"energy": -energy_cost, "electrons": amount})
+    user_data = await get_user_data("currency", interaction.user.id)
 
     container.add_item(discord.ui.TextDisplay(
         f"Energy spent: {energy_cost}\n"
+        f"Energy left: {user_data.get('energy', 0) if user_data else 0}\n"
         f"Electrons condensed: {amount}"
     ))
 
     container.add_item(discord.ui.Separator())
     action_row = discord.ui.ActionRow()
     retry = discord.ui.Button(label="Retry")
+    retry_amount = discord.ui.Button(label="Retry (Same Amount)")
     back = discord.ui.Button(label="Back")
 
     action_row.add_item(retry)
+    action_row.add_item(retry_amount)
     action_row.add_item(back)
 
     retry.callback = lambda inter: base_modal(inter, bot, False,
-                                              title="Differentiate Quarks",
-                                              placeholder="Enter amount of quarks to differentiate",
-                                              callback=differentiate_cb,
+                                              title="Condense Electrons",
+                                              placeholder="Enter amount of electrons to condense",
+                                              callback=condense_cb,
                                               currencies=["energy"])
-    back.callback = lambda inter: condense_cb(inter, bot)
+    retry_amount.callback = lambda inter: condense_cb(inter, bot, amount)
+    back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
+
+    retry.disabled = 1000 > (user_data.get('energy', 0) if user_data else 0)
+    retry_amount.disabled = energy_cost > (user_data.get('energy', 0) if user_data else 0)
 
     await interaction.response.send_message(view=view)
 
