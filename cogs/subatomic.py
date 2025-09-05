@@ -62,7 +62,10 @@ async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = N
         await add_data("currency", interaction.user.id, {"quarks": quarks})
 
     profile = await get_user_data("profile", interaction.user.id, {})
+    
     tutorials = profile.get("tutorials", [])
+    if not isinstance(tutorials, list):
+        tutorials = []
     
     if "probabilize_tutorial" not in tutorials:
         tutorials.append("probabilize_tutorial")
@@ -138,7 +141,10 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
     results = {}
     multiplier = await full_multipliers("quark_differentiation", user=interaction.user)
     profile = await get_user_data("profile", interaction.user.id, {})
+    
     tutorials = profile.get("tutorials", [])
+    if not isinstance(tutorials, list):
+        tutorials = []
     
     if "differentiate_tutorial" not in tutorials:
         tutorials.append("differentiate_tutorial")
@@ -214,7 +220,10 @@ async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None
         return await interaction.response.send_message(view=view)
 
     profile = await get_user_data("profile", interaction.user.id, {})
+    
     tutorials = profile.get("tutorials", [])
+    if not isinstance(tutorials, list):
+        tutorials = []
     
     if "condenser_tutorial" not in tutorials:
         tutorials.append("condenser_tutorial")

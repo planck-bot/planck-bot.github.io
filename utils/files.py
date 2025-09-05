@@ -15,7 +15,6 @@ async def read_json(file_path: str) -> Optional[Dict[str, Any]]:
 DB_PATH = f"data/database.db"
 
 async def _ensure_table_exists(db: aiosqlite.Connection, table: str, columns: Dict[str, Any] = None):
-    # First, create the table if it doesn't exist with basic structure
     await db.execute(f'''
         CREATE TABLE IF NOT EXISTS {table} (
             id INTEGER PRIMARY KEY
@@ -23,16 +22,13 @@ async def _ensure_table_exists(db: aiosqlite.Connection, table: str, columns: Di
     ''')
     
     if columns:
-        # Get existing columns
         cursor = await db.execute(f"PRAGMA table_info({table})")
         existing_columns = {row[1] for row in await cursor.fetchall()}
         
-        # Add missing columns
         for col_name, value in columns.items():
             if col_name not in existing_columns:
-                # Infer column type from value
                 if col_name == "id":
-                    continue  # ID column already exists
+                    continue
                 elif isinstance(value, int):
                     col_type = "INTEGER DEFAULT 0"
                 elif isinstance(value, float):
@@ -61,28 +57,35 @@ async def insert_data(table: str, data: Dict[str, Any]) -> int:
     if "id" not in data:
         raise ValueError("Data must include an 'id' field")
     
+    processed_data = {}
+    for key, value in data.items():
+        if isinstance(value, (list, dict)):
+            processed_data[key] = json.dumps(value)
+        else:
+            processed_data[key] = value
+    
     async with aiosqlite.connect(DB_PATH) as db:
-        await _ensure_table_exists(db, table, data)
+        await _ensure_table_exists(db, table, processed_data)
         
-        cursor = await db.execute(f'SELECT id FROM {table} WHERE id = ?', (data["id"],))
+        cursor = await db.execute(f'SELECT id FROM {table} WHERE id = ?', (processed_data["id"],))
         exists = await cursor.fetchone()
         
         if exists:
-            update_data_dict = {k: v for k, v in data.items() if k != "id"}
-            if update_data_dict:  # Only update if there's data to update
+            update_data_dict = {k: v for k, v in processed_data.items() if k != "id"}
+            if update_data_dict: 
                 set_clause = ", ".join([f"{col} = ?" for col in update_data_dict.keys()])
                 await db.execute(f'''
                     UPDATE {table} SET {set_clause} WHERE id = ?
-                ''', list(update_data_dict.values()) + [data["id"]])
+                ''', list(update_data_dict.values()) + [processed_data["id"]])
             await db.commit()
-            return data["id"]
+            return processed_data["id"]
         else:
-            columns = ", ".join(data.keys())
-            placeholders = ", ".join(["?" for _ in data.values()])
+            columns = ", ".join(processed_data.keys())
+            placeholders = ", ".join(["?" for _ in processed_data.values()])
             
             cursor = await db.execute(f'''
                 INSERT INTO {table} ({columns}) VALUES ({placeholders})
-            ''', list(data.values()))
+            ''', list(processed_data.values()))
             await db.commit()
             return cursor.lastrowid
 
@@ -125,7 +128,14 @@ async def get_user_data(table: str, user_id: int, default: Any = None) -> Union[
             row = await cursor.fetchone()
             if row:
                 column_names = [description[0] for description in cursor.description]
-                return dict(zip(column_names, row))
+                result = dict(zip(column_names, row))
+                for key, value in result.items():
+                    if isinstance(value, str):
+                        try:
+                            result[key] = json.loads(value)
+                        except json.JSONDecodeError:
+                            pass
+                return result
             return default
     return default # it should never reach here
 
@@ -207,7 +217,12 @@ async def add_data(table: str, user_id: int, data: Dict[str, Any]) -> Dict[str, 
         updated_data = {"id": user_id}
         for col_name, add_amount in data.items():
             current_value = current_data.get(col_name, 0)
-            updated_data[col_name] = current_value + add_amount
+            if isinstance(current_value, list) and isinstance(add_amount, list):
+                updated_data[col_name] = current_value + add_amount
+            elif isinstance(current_value, (int, float)) and isinstance(add_amount, (int, float)):
+                updated_data[col_name] = current_value + add_amount
+            else:
+                updated_data[col_name] = add_amount
         
         await insert_data(table, updated_data)
         
