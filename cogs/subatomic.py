@@ -16,22 +16,104 @@ from utils import (
 )
 
 @moderate()
-async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_command: bool = False, *, title: str, placeholder: str, callback, currencies: list):
+async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_command: bool = False, *, title: str, callback, currencies: list = None, inputs: list = None, selects: list = None):
+    """
+    Allows for select menus and multiple text inputs in a modal.
+
+    Args:
+        interaction (discord.Interaction): The interaction object
+        bot (commands.Bot): The bot instance
+        is_command (bool, optional): Whether this was triggered by a command. Defaults to False.
+        title (str): The title of the modal
+        callback (function): The callback function to execute when the modal is submitted
+        currencies (list, optional): List of currencies to check. Defaults to None.
+        inputs (list, optional): List of dictionaries containing text input configurations. Each dict should have:
+            - label (str): Label for the text input
+            - placeholder (str, optional): Placeholder text
+            - min_length (int, optional): Minimum length of input
+            - max_length (int, optional): Maximum length of input
+            - required (bool, optional): Whether the input is required
+            - style (discord.TextStyle, optional): The style of the text input
+            - default (str, optional): Default value for the input
+        selects (list, optional): List of dictionaries containing select configurations. Each dict should have:
+            - label (str): Label for the select menu
+            - options (list): List of dictionaries containing:
+                - label (str): The label for the option
+                - value (str): The value for the option
+                - description (str, optional): Description for the option
+            - min_values (int, optional): Minimum number of values that must be selected
+            - max_values (int, optional): Maximum number of values that can be selected
+            - placeholder (str, optional): Placeholder text when nothing is selected
+    """
     view, container = await base_view(interaction)
 
-    user_data = await get_user_data("currency", interaction.user.id)
-    for currency in currencies:
-        amount = user_data.get(currency, 0) if user_data else 0
-        if amount == 0:
-            container.add_item(discord.ui.TextDisplay(
-                f"You have no {currency} to {title.lower()}."
-            ))
-            return await cb(interaction, view, is_command)
+    if currencies:
+        user_data = await get_user_data("currency", interaction.user.id)
+        for currency in currencies:
+            amount = user_data.get(currency, 0) if user_data else 0
+            if amount == 0:
+                container.add_item(discord.ui.TextDisplay(
+                    f"You have no {currency} to {title.lower()}."
+                ))
+                return await cb(interaction, view, is_command)
 
-    amount_modal = discord.ui.Modal(title=title, timeout=None)
-    amount_modal.add_item(discord.ui.TextInput(label="Amount", placeholder=placeholder))
-    amount_modal.on_submit = lambda inter: callback(inter, bot, amount=int(amount_modal.children[0].value))
-    await interaction.response.send_modal(amount_modal)
+    modal = discord.ui.Modal(title=title, timeout=None)
+    
+    if inputs:
+        for input_config in inputs:
+            text_input = discord.ui.TextInput(
+                label=input_config["label"],
+                placeholder=input_config.get("placeholder", None),
+                min_length=input_config.get("min_length", None),
+                max_length=input_config.get("max_length", None),
+                required=input_config.get("required", True),
+                style=input_config.get("style", discord.TextStyle.short),
+                default=input_config.get("default", None)
+            )
+            modal.add_item(text_input)
+    
+    if selects:
+        print(selects)
+        for select_config in selects:
+            print(select_config)
+            select = discord.ui.Select(
+                placeholder=select_config.get("placeholder", None),
+                min_values=select_config.get("min_values", 1),
+                max_values=select_config.get("max_values", 1),
+                options=[
+                    discord.SelectOption(
+                        label=option["label"],
+                        value=option["value"],
+                        description=option.get("description", None)
+                    ) for option in select_config["options"]
+                ],
+                required=True
+            )
+            print(select)
+            modal.add_item(select)
+
+    async def submit_callback(inter):
+        values = {}
+        
+        if inputs:
+            for i, input_config in enumerate(inputs):
+                key = input_config.get("key", f"input_{i}")
+                value = modal.children[i].value
+
+                if value.isdigit():
+                    value = int(value)
+                values[key] = value
+        
+        if selects:
+            start_idx = len(inputs) if inputs else 0
+            for i, select_config in enumerate(selects, start=start_idx):
+                key = select_config.get("key", f"select_{i}")
+                values[key] = modal.children[i].values
+
+        await callback(inter, bot, **values)
+
+    modal.on_submit = submit_callback
+    await interaction.response.send_modal(modal)
 
 @moderate()
 async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
@@ -103,9 +185,13 @@ async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = N
 
     retry.callback = lambda inter: base_modal(inter, bot, False,
                                               title="Probabilize Energy",
-                                              placeholder="Enter amount of energy to probabilize",
                                               callback=probabilize_cb,
-                                              currencies=["energy"])
+                                              currencies=["energy"],
+                                              inputs=[{
+                                                  "label": "Amount",
+                                                  "placeholder": "Enter amount of energy to probabilize",
+                                                  "key": "amount"
+                                              }])
     retry_amount.callback = lambda inter: probabilize_cb(inter, bot, amount)
     back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
@@ -213,9 +299,13 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
 
     retry.callback = lambda inter: base_modal(inter, bot, False,
                                               title="Differentiate Quarks",
-                                              placeholder="Enter amount of quarks to differentiate",
                                               callback=differentiate_cb,
-                                              currencies=["quarks", "energy"])
+                                              currencies=["quarks", "energy"],
+                                              inputs=[{
+                                                  "label": "Amount",
+                                                  "placeholder": "Enter amount of quarks to differentiate",
+                                                  "key": "amount"
+                                              }])
     retry_amount.callback = lambda inter: differentiate_cb(inter, bot, amount)
     back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
@@ -279,15 +369,173 @@ async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None
 
     retry.callback = lambda inter: base_modal(inter, bot, False,
                                               title="Condense Electrons",
-                                              placeholder="Enter amount of electrons to condense",
                                               callback=condense_cb,
-                                              currencies=["energy"])
+                                              currencies=["energy"],
+                                              inputs=[{
+                                                  "label": "Amount",
+                                                  "placeholder": "Enter amount of electrons to condense",
+                                                  "key": "amount"
+                                              }])
     retry_amount.callback = lambda inter: condense_cb(inter, bot, amount)
     back.callback = lambda inter: subatomic_cb(inter, bot)
     container.add_item(action_row)
 
     retry.disabled = 1000 > (user_data.get('energy', 0) if user_data else 0)
     retry_amount.disabled = energy_cost > (user_data.get('energy', 0) if user_data else 0)
+
+    await interaction.response.send_message(view=view)
+
+async def hadronize_cb(interaction: discord.Interaction, bot: commands.Bot = None, protons: int = 0, neutrons: int = 0):
+    view, container = await base_view(interaction)
+    user_data = await get_user_data("currency", interaction.user.id)
+    proton = {"up_quark": 2, "down_quark": 1}
+    neutron = {"up_quark": 1, "down_quark": 2}
+    energy_cost = 2500 * (protons + neutrons)
+
+    required_quarks = {}
+    for quark, amount in proton.items():
+        required_quarks[quark] = required_quarks.get(quark, 0) + amount * protons
+    for quark, amount in neutron.items():
+        required_quarks[quark] = required_quarks.get(quark, 0) + amount * neutrons
+
+    for quark, amount in required_quarks.items():
+        if (user_data.get(quark, 0) if user_data else 0) < amount:
+            container.add_item(discord.ui.TextDisplay(
+                f"You do not have enough {quark.replace('_', ' ')}s to hadronize {protons} protons and {neutrons} neutrons."
+            ))
+            return await interaction.response.send_message(view=view)
+        
+    if energy_cost > (user_data.get('energy', 0) if user_data else 0):
+        container.add_item(discord.ui.TextDisplay(
+            f"You do not have enough energy to hadronize {protons} protons and {neutrons} neutrons."
+        ))
+        return await interaction.response.send_message(view=view)
+
+    await add_data("currency", interaction.user.id, {quark: -amount for quark, amount in required_quarks.items()})
+    await add_data("currency", interaction.user.id, {"energy": -energy_cost, "protons": protons, "neutrons": neutrons})
+    user_data = await get_user_data("currency", interaction.user.id)
+
+    container.add_item(discord.ui.TextDisplay(
+        f"Protons gained: {protons} (total: {user_data.get('protons', 0) if user_data else 0})\n"
+        f"Neutrons gained: {neutrons} (total: {user_data.get('neutrons', 0) if user_data else 0})\n"
+        f"Quarks spent: {', '.join([f'{amount} {quark.replace('_', ' ')}(s)' for quark, amount in required_quarks.items()])}"
+    ))
+
+    container.add_item(discord.ui.Separator())
+    action_row = discord.ui.ActionRow()
+    retry = discord.ui.Button(label="Retry")
+    retry_amount = discord.ui.Button(label="Retry (Same Amount)")
+    back = discord.ui.Button(label="Back")
+
+    action_row.add_item(retry)
+    action_row.add_item(retry_amount)
+    action_row.add_item(back)
+
+    retry.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Hadronize Protons and Neutrons",
+                                              callback=hadronize_cb,
+                                              currencies=["energy"],
+                                              inputs=[{
+                                                  "label": "Protons",
+                                                  "placeholder": "Enter amount of protons to hadronize",
+                                                  "key": "protons"
+                                              }, {
+                                                  "label": "Neutrons",
+                                                  "placeholder": "Enter amount of neutrons to hadronize",
+                                                  "key": "neutrons"
+                                              }])
+    retry_amount.callback = lambda inter: hadronize_cb(inter, bot, amount)
+    back.callback = lambda inter: subatomic_cb(inter, bot)
+    container.add_item(action_row)
+
+    retry.disabled = 2500 > (user_data.get('energy', 0) if user_data else 0) and 1 > (user_data.get('protons', 0) if user_data else 0) and 1 > (user_data.get('neutrons', 0) if user_data else 0)
+    retry_amount.disabled = energy_cost > (user_data.get('energy', 0) if user_data else 0) and protons > (user_data.get('protons', 0) if user_data else 0) and neutrons > (user_data.get('neutrons', 0) if user_data else 0)
+
+    await interaction.response.send_message(view=view)
+
+ATOMS = {
+    "hydrogen": {"protons": 1, "neutrons": 0, "electrons": 1},
+    "lithium": {"protons": 3, "neutrons": 4, "electrons": 3},
+    "carbon": {"protons": 6, "neutrons": 6, "electrons": 6},
+    "nitrogen": {"protons": 7, "neutrons": 7, "electrons": 7},
+    "oxygen": {"protons": 8, "neutrons": 8, "electrons": 8},
+    "sodium": {"protons": 11, "neutrons": 12, "electrons": 11},
+    "magnesium": {"protons": 12, "neutrons": 12, "electrons": 12},
+    "aluminum": {"protons": 13, "neutrons": 14, "electrons": 13},
+    "chlorine": {"protons": 17, "neutrons": 18, "electrons": 17},
+    "bromine": {"protons": 35, "neutrons": 45, "electrons": 35},
+    "iodine": {"protons": 53, "neutrons": 74, "electrons": 53},
+    "uranium": {"protons": 92, "neutrons": 146, "electrons": 92}
+}
+
+COMPOUNDS = {
+    "water": {"hydrogen": 2, "oxygen": 1},                               # Boosts energy by 0.1%
+    "carbon_dioxide": {"carbon": 1, "oxygen": 2},                        # Boosts quarks by 0.2%
+    "methane": {"carbon": 1, "hydrogen": 4},                             # Boosts energy by 0.3%
+    "ammonia": {"nitrogen": 1, "hydrogen": 3},                           # Boosts quarks by 0.4%
+    "glucose": {"carbon": 6, "hydrogen": 12, "oxygen": 6},               # Boosts energy by 0.7%
+    "sodium_chloride": {"sodium": 1, "chlorine": 1},                     # Boosts quarks by 1.0%
+    "magnesium_hydroxide": {"magnesium": 1, "hydrogen": 2, "oxygen": 2}, # Boosts energy by 1.2%
+    "aluminum_oxide": {"aluminum": 2, "oxygen": 3},                      # Boosts quarks by 1.5%
+    "calcium_carbonate": {"calcium": 1, "carbon": 1, "oxygen": 3},       # Boosts energy by 2.0%
+    "sulfuric_acid": {"hydrogen": 2, "sulfur": 1, "oxygen": 4},          # Boosts quarks by 2.5%
+    "uranium_dioxide": {"uranium": 1, "oxygen": 2}                       # Boosts energy by 5.0%
+}
+
+async def nucleosynthesis_cb(interaction: discord.Interaction, bot: commands.Bot = None, *, atom: str, amount: int = 1):
+    view, container = await base_view(interaction)
+    user_data = await get_user_data("currency", interaction.user.id)
+    if atom not in ATOMS:
+        container.add_item(discord.ui.TextDisplay(
+            f"{atom} is not a valid atom to synthesize."
+        ))
+        return await interaction.response.send_message(view=view)
+    
+    energy_required = (5000 * ATOMS[atom]["protons"] + 5000 * ATOMS[atom]["neutrons"]) * amount
+    electrons_required = ATOMS[atom]["electrons"] * amount
+    protons_required = ATOMS[atom]["protons"] * amount
+    neutrons_required = ATOMS[atom]["neutrons"] * amount
+
+    energy = user_data.get('energy', 0) if user_data else 0
+    electrons = user_data.get('electrons', 0) if user_data else 0
+    protons = user_data.get('protons', 0) if user_data else 0
+    neutrons = user_data.get('neutrons', 0) if user_data else 0
+
+    def missing_resources():
+        missing = []
+        if energy_required > energy:
+            missing.append(f"{energy_required - energy} more energy")
+        if electrons_required > electrons:
+            missing.append(f"{electrons_required - electrons} more electrons")
+        if protons_required > protons:
+            missing.append(f"{protons_required - protons} more protons")
+        if neutrons_required > neutrons:
+            missing.append(f"{neutrons_required - neutrons} more neutrons")
+        return missing
+
+    missing = missing_resources()
+    if missing:
+        container.add_item(discord.ui.TextDisplay(
+            f"You do not have enough resources to synthesize {amount} {atom}(s). You need {', '.join(missing)}."
+        ))
+        return await interaction.response.send_message(view=view)
+
+    # currency table atoms: {"hydrogen": 1, etc}
+    await add_data("currency", interaction.user.id, {
+        "energy": -energy_required,
+        "electrons": -electrons_required,
+        "protons": -protons_required,
+        "neutrons": -neutrons_required,
+        "atoms": {atom: amount}
+    })
+
+    container.add_item(discord.ui.TextDisplay(
+        f"Synthesized {amount} {atom}(s)!\n"
+        f"Energy spent: {energy_required}\n"
+        f"Electrons spent: {electrons_required}\n"
+        f"Protons spent: {protons_required}\n"
+        f"Neutrons spent: {neutrons_required}\n"
+    ))
 
     await interaction.response.send_message(view=view)
 
@@ -323,9 +571,13 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
 
     differentiate.callback = lambda inter: base_modal(inter, bot, False,
                                               title="Differentiate Quarks",
-                                              placeholder="Enter amount of quarks to differentiate",
                                               callback=differentiate_cb,
-                                              currencies=["quarks", "energy"])
+                                              currencies=["quarks", "energy"],
+                                              inputs=[{
+                                                  "label": "Amount",
+                                                  "placeholder": "Enter amount of quarks to differentiate",
+                                                  "key": "amount"
+                                              }])
 
     if quarks > 0 and energy > 249:
         subatomic_row.add_item(differentiate)
@@ -334,9 +586,13 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
 
     condense.callback = lambda inter: base_modal(inter, bot, False,
                                               title="Condense Electrons",
-                                              placeholder="Enter amount of electrons to condense",
                                               callback=condense_cb,
-                                              currencies=["energy"])
+                                              currencies=["energy"],
+                                              inputs=[{
+                                                  "label": "Amount",
+                                                  "placeholder": "Enter amount of electrons to condense",
+                                                  "key": "amount"
+                                              }])
 
     if energy > 999:
         subatomic_row.add_item(condense)
@@ -374,9 +630,13 @@ class SubatomicCog(commands.Cog):
         else:
             await base_modal(interaction, self.bot, False,
                              title="Probabilize Energy",
-                             placeholder="Enter amount of energy to probabilize",
                              callback=probabilize_cb,
-                             currencies=["energy"])
+                             currencies=["energy"],
+                             inputs=[{
+                                 "label": "Amount",
+                                 "placeholder": "Enter amount of energy to probabilize",
+                                 "key": "amount"
+                             }])
 
     @subatomic_group.command(name="differentiate", description="Differentiate quarks into specific types")
     @app_commands.describe(amount="The amount to differentiate (Requires 250 energy per quark)")
@@ -386,9 +646,13 @@ class SubatomicCog(commands.Cog):
         else:
             await base_modal(interaction, self.bot, False,
                              title="Differentiate Quarks",
-                             placeholder="Enter amount of quarks to differentiate",
                              callback=differentiate_cb,
-                             currencies=["quarks", "energy"])
+                             currencies=["quarks", "energy"],
+                             inputs=[{
+                                 "label": "Amount",
+                                 "placeholder": "Enter amount of quarks to differentiate",
+                                 "key": "amount"
+                             }])
 
     @subatomic_group.command(name="condense", description="Condense electrons into energy")
     @app_commands.describe(amount="The amount to condense (1000 energy = 1 electron)")
@@ -398,9 +662,59 @@ class SubatomicCog(commands.Cog):
         else:
             await base_modal(interaction, self.bot, False,
                              title="Condense Electrons",
-                             placeholder="Enter amount of electrons to condense",
                              callback=condense_cb,
-                             currencies=["energy"])
+                             currencies=["energy"],
+                             inputs=[{
+                                 "label": "Amount",
+                                 "placeholder": "Enter amount of electrons to condense",
+                                 "key": "amount"
+                             }])
 
+    @subatomic_group.command(name="hadronize", description="Hadronize protons and neutrons from quarks")
+    @app_commands.describe(protons="The amount of protons to hadronize", neutrons="The amount of neutrons to hadronize")
+    async def hadronize_command(self, interaction: discord.Interaction, protons: int = 0, neutrons: int = 0):
+        if protons > 0 or neutrons > 0:
+            await hadronize_cb(interaction, self.bot, protons, neutrons)
+        else:
+            await base_modal(interaction, self.bot, False,
+                             title="Hadronize Protons and Neutrons",
+                             callback=hadronize_cb,
+                             currencies=["energy"],
+                             inputs=[{
+                                 "label": "Protons",
+                                 "placeholder": "Enter amount of protons to hadronize",
+                                 "key": "protons"
+                             }, {
+                                 "label": "Neutrons",
+                                 "placeholder": "Enter amount of neutrons to hadronize",
+                                 "key": "neutrons"
+                             }]) 
+
+    @subatomic_group.command(name="nucleosynthesis", description="Synthesize atoms from protons, neutrons, and electrons")
+    @app_commands.describe(atom="The atom to synthesize")
+    @app_commands.choices(atom=[app_commands.Choice(name=atom.title(), value=atom) for atom in ATOMS.keys()]) # Should be less than 25
+    async def nucleosynthesis_command(self, interaction: discord.Interaction, atom: str = ""):
+        if atom:
+            await nucleosynthesis_cb(interaction, self.bot, atom=atom.lower())
+        else:
+            await interaction.response.send_message("This feature comes out at least September 10th")
+            # https://discord.com/channels/613425648685547541/1040031099860045854/1413566013634646200
+            
+            """
+            options = [{"label": atom.title(), "value": atom} for atom in ATOMS.keys()]
+            await base_modal(interaction, self.bot, False,
+                            title="Nucleosynthesis",
+                            callback=nucleosynthesis_cb,
+                            currencies=["energy", "electrons", "protons", "neutrons"],
+                            selects=[{
+                                "label": "Atom",
+                                "options": options,
+                                "min_values": 1,
+                                "max_values": 1,
+                                "placeholder": "Select an atom to synthesize",
+                                "key": "atom"
+                            }])
+            """
+                            
 async def setup(bot: commands.Bot):
     await bot.add_cog(SubatomicCog(bot))

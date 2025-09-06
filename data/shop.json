@@ -6,12 +6,12 @@
                 "energy": 100
             },
             "increments": {
-                "energy": "%10"
+                "energy": "%20"
             },
             "requirements": {
                 "level": 1
             },
-            "max": 99
+            "max": 50
         },
         "Quantum Luck": {
             "description": "Increases the chance to get a quark by 1% per level",
@@ -36,12 +36,12 @@
             },
             "increments": {
                 "energy": "%20",
-                "quarks": "%25"
+                "quarks": "%15"
             },
             "requirements": {
                 "level": 5
             },
-            "max": 20
+            "max": 30
         },
         "Quantum Lenses": {
             "description": "Doubles differentiation quark chances",
@@ -69,7 +69,39 @@
                 "electrons": "+1"
             },
             "requirements": {
-                "level": 10
+                "level": 15
+            },
+            "max": 10
+        },
+        "Electric Field": {
+            "description": "Increases quark gain by 10% per level (compounding) and quark chance by 2% (non-compounding)",
+            "price": {
+                "energy": 2000,
+                "electrons": 2
+            },
+            "increments": {
+                "energy": "%35",
+                "electrons": "+2"
+            },
+            "requirements": {
+                "level": 18
+            },
+            "max": 20
+        },
+        "Subatomic Efficiency": {
+            "description": "Increases energy gain by 50%, quark gain by 25% (compounding), and electron chance by 2% (non-compounding)",
+            "price": {
+                "energy": 25000,
+                "quarks": 500,
+                "electrons": 20
+            },
+            "increments": {
+                "energy": "%75",
+                "quarks": "%25",
+                "electrons": "+5"
+            },
+            "requirements": {
+                "level": 30
             },
             "max": 10
         }

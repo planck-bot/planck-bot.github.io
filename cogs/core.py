@@ -70,25 +70,36 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
         quarks_gained = 0
         
         if quark_chance > 0 and random.random() < (quark_chance / 100):
-
             quark_bonus = level // 3
             quarks_gained = random.randint(2 + quark_bonus, 5 + quark_bonus)
             await add_data("currency", user_id, {"quarks": quarks_gained})
-        
+
+        # == ELECTRONS
+        electron_chance = await full_chances("energy", user=interaction.user)
+        electrons_gained = 0
+
+        if electron_chance > 0 and random.random() < (electron_chance / 100):
+            electron_bonus = level // 4
+            electrons_gained = random.randint(1 + electron_bonus, 3 + electron_bonus)
+            await add_data("currency", user_id, {"electrons": electrons_gained})
+
         # == XP
         # Energy: 1 XP per
         # Quarks: 3 XP per
-        total_xp = energy_gained + (quarks_gained * 3)
+        total_xp = energy_gained + (quarks_gained * 3) + (electrons_gained * 25)
         await add_data("profile", user_id, {"xp": total_xp, "gains": 1})
         
         quark_result = await get_user_data("currency", user_id)
         total_quarks = quark_result.get("quarks", 0) if quark_result else 0
+        total_electrons = quark_result.get("electrons", 0) if quark_result else 0
         
         gain_text = f"**Gained**:\n+{energy_gained:,} energy (total: {total_energy:,})"
         
         if quarks_gained > 0:
             gain_text += f"\n+{quarks_gained:,} quarks (total: {total_quarks:,})"
-        
+
+        if electrons_gained > 0:
+            gain_text += f"\n+{electrons_gained:,} electrons (total: {total_electrons:,})"
 
         gain_text += f"\n+{total_xp:,} EXP"
         container.add_item(discord.ui.TextDisplay(gain_text))
@@ -220,11 +231,12 @@ async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = N
 
     energy = await full_multipliers("energy", user=interaction.user)
     quarks = await full_multipliers("quark", user=interaction.user)
+    quarks_chance = await full_chances("quark", user=interaction.user)
 
     container.add_item(discord.ui.TextDisplay(
         f"**XP**: 1x\n"
         f"**Energy**: {energy:.2f}x\n"
-        f"**Quarks**: {quarks:.2f}x\n"
+        f"**Quarks**: {quarks:.2f}x ({quarks_chance:.2f}%)\n"
     ))
     container.add_item(discord.ui.Separator())
     action_row = discord.ui.ActionRow()

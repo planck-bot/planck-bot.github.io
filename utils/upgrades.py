@@ -43,11 +43,14 @@ class MultiplierManager(BaseUpgradeManager):
         upgrades = await self._load_upgrades()
         base += upgrades.get("energy_manipulator", 0) / 10  # 10% every upgrade (0.10) additive
         base += base * (upgrades.get("undercharged", 0) / 4)  # 25% every upgrade (0.25) compounding
+        base += base * (upgrades.get("subatomic_efficiency", 0) / 2)  # 50% every upgrade (0.50) compounding
         return base
     
     async def get_quark_multiplier(self, base: float = 1.0) -> float:
         upgrades = await self._load_upgrades()
         base += upgrades.get("quantum_manipulator", 0) / 20  # 5% every upgrade (0.05)
+        base += base * (upgrades.get("electric_field", 0) / 10)  # 10% every upgrade (0.10) compounding
+        base += base * (upgrades.get("subatomic_efficiency", 0) / 4)  # 25% every upgrade (0.25) compounding
         return base
 
     async def get_quark_differentiation_multiplier(self, base: float) -> float:
@@ -78,18 +81,23 @@ class ChanceManager(BaseUpgradeManager):
     Manages chance calculations based on user upgrades.
     """
     
-    async def get_quark_luck_chance(self, base: float = 0.0) -> float:
+    async def get_quark_chance(self, base: float = 0.0) -> float:
         upgrades = await self._load_upgrades()
         base += upgrades.get("quantum_luck", 0)
+        base += upgrades.get("electric_field", 0) * 2
+        return base
+
+    async def get_electron_chance(self, base: float = 0.0) -> float:
+        upgrades = await self._load_upgrades()
+        base += upgrades.get("subatomic_efficiency", 0) * 2
         return base
     
     async def get_full_chance(self, chance_type: str, base: float = 0.0) -> float:
         if chance_type == "quark":
-            return await self.get_quark_luck_chance(base)
-
-        # if chance_type == "something_else": 
-            # return await ...
-        # just putting that there if i forget
+            return await self.get_quark_chance(base)
+        elif chance_type == "electron":
+            return await self.get_electron_chance(base)
+        
         return base
 
 
