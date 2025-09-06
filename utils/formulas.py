@@ -52,7 +52,8 @@ def calculate_level_from_xp(current_xp: int) -> dict:
             "level": 1,
             "xp_for_current_level": 0,
             "xp_for_next_level": 30,
-            "xp_progress": 0
+            "xp_progress": 0,
+            "xp_needed": 30
         }
     
     level = 1
