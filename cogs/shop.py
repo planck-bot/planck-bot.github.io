@@ -261,5 +261,10 @@ class ShopCog(commands.Cog):
     async def regular_shop(self, interaction: discord.Interaction):
         await shop_cb(interaction, self.bot, True)
 
+    @shop_cog.command(name="photon", description="Show the photon shop")
+    @handle_errors()
+    async def photon_shop(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Photon shop is not implemented yet.", ephemeral=True)
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(ShopCog(bot))

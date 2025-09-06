@@ -72,27 +72,32 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
         total_energy = result["energy"]
         
         # == QUARKS
+        quark_multiplier = await full_multipliers("quark", user=interaction.user)
         quark_chance = await full_chances("quark", user=interaction.user)
         quarks_gained = 0
         
         if quark_chance > 0 and random.random() < (quark_chance / 100):
             quark_bonus = level // 3
-            quarks_gained = random.randint(2 + quark_bonus, 5 + quark_bonus)
+            quarks_gained = int(random.randint(2 + quark_bonus, 5 + quark_bonus) * quark_multiplier)
             await add_data("currency", user_id, {"quarks": quarks_gained})
 
         # == ELECTRONS
-        electron_chance = await full_chances("energy", user=interaction.user)
+        electron_multiplier = await full_multipliers("electron", user=interaction.user)
+        electron_chance = await full_chances("electron", user=interaction.user)
         electrons_gained = 0
 
         if electron_chance > 0 and random.random() < (electron_chance / 100):
             electron_bonus = level // 4
-            electrons_gained = random.randint(1 + electron_bonus, 3 + electron_bonus)
+            electrons_gained = int(random.randint(1 + electron_bonus, 3 + electron_bonus) * electron_multiplier)
             await add_data("currency", user_id, {"electrons": electrons_gained})
 
         # == XP
         # Energy: 1 XP per
         # Quarks: 3 XP per
+        # Electrons: 25 XP per
+        xp_multiplier = await full_multipliers("xp", user=interaction.user)
         total_xp = energy_gained + (quarks_gained * 3) + (electrons_gained * 25)
+        total_xp = int(total_xp * xp_multiplier)
         await add_data("profile", user_id, {"xp": total_xp, "gains": 1})
         
         quark_result = await get_user_data("currency", user_id)
@@ -140,7 +145,7 @@ async def profile_cb(interaction: discord.Interaction, bot: commands.Bot = None,
     view, container = await base_view(interaction)
     container.add_item(discord.ui.TextDisplay(
         f"**{interaction.user.display_name}'s Profile**\n"
-        f"**Level:** {level_info['level']} ({level_info['xp_progress']:,} / {level_info['xp_needed'] + level_info['xp_progress']:,})\n"
+        f"**Level:** {level_info['level']} ({level_info['xp_progress']:,} / {level_info['xp_needed']:,})\n"
         f"**Gains:** {profile_data.get('gains', 0):,}"
     ))
     container.add_item(discord.ui.Separator())
@@ -239,12 +244,14 @@ async def menu_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
 async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     view, container = await base_view(interaction)
 
+    xp = await full_multipliers("xp", user=interaction.user)
+
     energy = await full_multipliers("energy", user=interaction.user)
     quarks = await full_multipliers("quark", user=interaction.user)
     quarks_chance = await full_chances("quark", user=interaction.user)
 
     container.add_item(discord.ui.TextDisplay(
-        f"**XP**: 1x\n"
+        f"**XP**: {xp:.2f}x\n"
         f"**Energy**: {energy:.2f}x\n"
         f"**Quarks**: {quarks:.2f}x ({quarks_chance:.2f}%)\n"
     ))
@@ -357,6 +364,23 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                         "└─Atoms are the final product of this stage"
                     ),
                     "requirement": "nucleosynthesis_tutorial"
+                },
+                "Fission": {
+                    "title": "First of many",
+                    "content": (
+                        "</subatomic fission:1412151005088448542> is the first reset layer.\n\n"
+                        "┌─Fission will reset all currencies except atoms and special quarks\n"
+                        "├─It will also reset all upgrades and XP (previous to fission)\n"
+                        "├─You will gain photons (depends on your fission amount), which boost energy and quark gain by 10% each\n"
+                        "├─ └─You will be able to spend photons using the </shop photons:1412981220635312257>\n"
+                        "├─Differentiated quarks become 1% more common per fission\n"
+                        "├─You will also gain 10% more XP per fission\n"
+                        "├─Your next fissions require atoms that cost more\n"
+                        "├─ └─The cost of fission also increases exponentially\n"
+                        "├─As a one time bonus, you get 5% quark chance and 1% electron chance\n"
+                        "└─ └─This is only for your first fission\n"
+                    ),
+                    "requirement": "fission_tutorial"
                 }
             }
         }

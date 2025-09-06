@@ -593,6 +593,169 @@ async def nucleosynthesis_cb(interaction: discord.Interaction, bot: commands.Bot
 
 @moderate()
 @handle_errors()
+async def fission_cb(interaction: discord.Interaction, bot: commands.Bot = None, confirmed: bool = False):
+    view, container = await base_view(interaction)
+
+    user_data = await get_user_data("currency", interaction.user.id) or {}
+    resets = await get_user_data("resets", interaction.user.id) or {}
+    atoms = user_data.get("atoms", {})
+    energy = user_data.get("energy", 0)
+    fission_resets = resets.get("fission", 0)
+
+    atoms_list = list(ATOMS.keys())
+    fission_cost = 2 ** fission_resets * 1_000_000
+    fission_atom = atoms_list[min(fission_resets, len(atoms_list) - 1)]
+    fission_atom_amount = (
+        2 ** (fission_resets - (len(atoms_list) - 1))
+        if fission_atom == "uranium"
+        else 1
+    )
+
+    if atoms.get(fission_atom, 0) < fission_atom_amount:
+        container.add_item(discord.ui.TextDisplay(
+            f"You need {fission_atom_amount} {fission_atom}(s) to do fission."
+        ))
+        return await interaction.response.send_message(view=view)
+
+    if energy < fission_cost:
+        container.add_item(discord.ui.TextDisplay(
+            f"You need {fission_cost} energy to do fission."
+        ))
+        return await interaction.response.send_message(view=view)
+
+    if not confirmed:
+        next_photon = fission_resets + 1
+        first_time = fission_resets == 0
+        container.add_item(discord.ui.TextDisplay(
+            "**WARNING**: Performing fission will reset:\n"
+            "- All XP and levels\n"
+            "- All regular shop upgrades\n"
+            "- All currencies EXCEPT atoms and quarks\n\n"
+            f"This will consume {fission_atom_amount} {fission_atom}(s) and {fission_cost:,} energy.\n\n"
+            "You will gain:\n"
+            f"- {next_photon} Photon{'s' if next_photon > 1 else ''}\n"
+            "- 10% boost to energy and quarks gain (compounds with previous fissions)\n"
+            "- All differentiated quarks become 1% more common\n"
+            "- You gain 10% more XP\n" +
+            ("- 5% chance to get quarks (one-time bonus)\n"
+             "- 1% chance to get electrons (one-time bonus)\n" if first_time else "") +
+            "\nAre you sure you want to continue?"
+        ))
+        
+        action_row = discord.ui.ActionRow()
+        confirm = discord.ui.Button(label="Yes, perform fission", style=discord.ButtonStyle.danger)
+        cancel = discord.ui.Button(label="No, cancel", style=discord.ButtonStyle.secondary)
+        
+        action_row.add_item(confirm)
+        action_row.add_item(cancel)
+        
+        confirm.callback = lambda inter: fission_cb(inter, bot, confirmed=True)
+        cancel.callback = lambda inter: subatomic_cb(inter, bot)
+        
+        container.add_item(action_row)
+        return await interaction.response.send_message(view=view)
+
+    upgrade_data = await get_user_data("upgrades", interaction.user.id) or {}
+    profile_data = await get_user_data("profile", interaction.user.id) or {}
+
+    user_data = await get_user_data("currency", interaction.user.id) or {}
+    resets = await get_user_data("resets", interaction.user.id) or {}
+    upgrade_data = await get_user_data("upgrades", interaction.user.id) or {}
+    profile_data = await get_user_data("profile", interaction.user.id) or {}
+
+    atoms = user_data.get("atoms", {})
+    energy = user_data.get("energy", 0)
+    fission_resets = resets.get("fission", 0)
+
+    atoms_list = list(ATOMS.keys())
+    fission_cost = 2 ** fission_resets * 1_000_000
+    fission_atom = atoms_list[min(fission_resets, len(atoms_list) - 1)]
+
+    fission_atom_amount = (
+        2 ** (fission_resets - (len(atoms_list) - 1))
+        if fission_atom == "uranium"
+        else 1
+    )
+
+    if atoms.get(fission_atom, 0) < fission_atom_amount:
+        container.add_item(discord.ui.TextDisplay(
+            f"You need {fission_atom_amount} {fission_atom}(s) to do fission."
+        ))
+        return await interaction.response.send_message(view=view)
+
+    if energy < fission_cost:
+        container.add_item(discord.ui.TextDisplay(
+            f"You need {fission_cost} energy to do fission."
+        ))
+        return await interaction.response.send_message(view=view)
+
+    await add_data("currency", interaction.user.id, {
+        "energy": -energy,
+        "quarks": -user_data.get("quarks", 0),
+        "up_quark": -user_data.get("up_quark", 0),
+        "down_quark": -user_data.get("down_quark", 0),
+        "electrons": -user_data.get("electrons", 0),
+        "protons": -user_data.get("protons", 0),
+        "neutrons": -user_data.get("neutrons", 0),
+    })
+
+    await add_data("upgrades", interaction.user.id, {
+        "energy_manipulator": -upgrade_data.get("energy_manipulator", 0),
+        "quantum_luck": -upgrade_data.get("quantum_luck", 0),
+        "quantum_manipulator": -upgrade_data.get("quantum_manipulator", 0),
+        "quantum_lenses": -upgrade_data.get("quantum_lens", 0),
+        "undercharged": -upgrade_data.get("undercharged", 0),
+        "electric_field": -upgrade_data.get("electric_field", 0),
+        "subatomic_efficiency": -upgrade_data.get("subatomic_efficiency", 0),
+    })
+
+    await add_data("profile", interaction.user.id, {"xp": -profile_data.get("xp", 0)})
+
+    total_resets = await add_data("resets", interaction.user.id, {"fission": 1})
+    await add_data("currency", interaction.user.id, {"photons": total_resets["fission"]})
+
+    atoms[fission_atom] = atoms.get(fission_atom, 0) - fission_atom_amount
+    await add_data("currency", interaction.user.id, {"atoms": atoms})
+
+    tutorials = profile_data.get("tutorials", [])
+    if not isinstance(tutorials, list):
+        tutorials = []
+
+    if "fission_tutorial" not in tutorials:
+        tutorials.append("fission_tutorial")
+        await add_data("profile", interaction.user.id, {"tutorials": tutorials})
+
+        container.add_item(discord.ui.TextDisplay(
+            "You have successfully performed fission for the first time!\n"
+            "</subatomic fission:1412151005088448542> is the first reset layer.\n\n"
+            "┌─Fission will reset all currencies except atoms and special quarks\n"
+            "├─It will also reset all upgrades and XP (previous to fission)\n"
+            "├─You will gain photons (depends on your fission amount), which boost energy and quark gain by 10% each\n"
+            "├─ └─You will be able to spend photons using the </shop photons:1412981220635312257>\n"
+            "├─Differentiated quarks become 1% more common per fission\n"
+            "├─You will also gain 10% more XP per fission\n"
+            "├─Your next fissions require atoms that cost more\n"
+            "├─ └─The cost of fission also increases exponentially\n"
+            "├─As a one time bonus, you get 5% quark chance and 1% electron chance\n"
+            "└─ └─This is only for your first fission\n"
+            "-# Use </help:1412981220635312252> to view this again!"
+        ))
+        container.add_item(discord.ui.Separator())
+
+    user_data = await get_user_data("currency", interaction.user.id)
+    container.add_item(discord.ui.TextDisplay(
+        f"You have successfully performed fission!\n"
+        f"Fission resets: {total_resets['fission']}\n"
+        f"Photons gained: {total_resets['fission']} (total: {user_data.get('photons', 0)})\n"
+        f"Energy, Quarks, Electrons, Protons, and Neutrons have been reset to 0.\n"
+        f"Your upgrades have also been reset, along with XP.\n"
+        f"{fission_atom_amount} {fission_atom}(s) have been consumed."
+    ))
+
+    await interaction.response.send_message(view=view)
+
+@moderate()
+@handle_errors()
 async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     from .core import gain_cb, menu_cb
     view, container = await base_view(interaction)
@@ -605,6 +768,12 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
     user_data = await get_user_data("currency", interaction.user.id)
     energy = user_data.get('energy', 0) if user_data else 0
     quarks = user_data.get('quarks', 0) if user_data else 0
+    up_quarks  = user_data.get('up_quark', 0) if user_data else 0
+    down_quarks = user_data.get('down_quark', 0) if user_data else 0
+    electrons = user_data.get('electrons', 0) if user_data else 0
+    protons = user_data.get('protons', 0) if user_data else 0
+    neutrons = user_data.get('neutrons', 0) if user_data else 0
+    atoms = user_data.get('atoms', {}) if user_data else {}
 
     container.add_item(discord.ui.Separator())
     subatomic_row = discord.ui.ActionRow()
@@ -612,10 +781,14 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
     probabilize = discord.ui.Button(label="Probabilize")
 
     probabilize.callback = lambda inter: base_modal(inter, bot, False,
-                                              title="Probabilize Energy",
-                                              placeholder="Enter amount of energy to probabilize",
-                                              callback=probabilize_cb,
-                                              currencies=["energy"])
+                                                   title="Probabilize Energy",
+                                                   callback=probabilize_cb,
+                                                   currencies=["energy"],
+                                                   inputs=[{
+                                                       "label": "Amount",
+                                                       "placeholder": "Enter amount of energy to probabilize",
+                                                       "key": "amount"
+                                                   }])
     
     if energy > 0:
         subatomic_row.add_item(probabilize)
@@ -650,17 +823,64 @@ async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = Non
     if energy > 999:
         subatomic_row.add_item(condense)
 
+    hadronize = discord.ui.Button(label="Hadronize")
+
+    hadronize.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Hadronize Protons and Neutrons",
+                                              callback=hadronize_cb,
+                                              currencies=["up_quark", "down_quark", "energy"],
+                                              inputs=[{
+                                                  "label": "Protons",
+                                                  "placeholder": "Enter amount of protons to hadronize",
+                                                  "key": "protons"
+                                              },
+                                              {
+                                                  "label": "Neutrons",
+                                                  "placeholder": "Enter amount of neutrons to hadronize",
+                                                  "key": "neutrons"
+                                              }])
+
+    hadronize.disabled = True # TODO
+    if up_quarks > 1 and down_quarks > 0 and energy > 2499:
+        subatomic_row.add_item(hadronize)
+
+    nucleosynthesize = discord.ui.Button(label="Nucleosynthesize")
+
+    nucleosynthesize.callback = lambda inter: base_modal(inter, bot, False,
+                                              title="Nucleosynthesis",
+                                              callback=nucleosynthesis_cb,
+                                              currencies=["energy", "electrons", "protons", "neutrons"],
+                                              selects=[{
+                                                  "label": "Atom",
+                                                  "options": [{"label": atom.title(), "value": atom} for atom in ATOMS.keys()],
+                                                  "key": "atom"
+                                              }],
+                                              inputs=[{
+                                                  "label": "Amount",
+                                                  "placeholder": "Enter amount of atoms to synthesize",
+                                                  "key": "amount"
+                                              }])
+
+    nucleosynthesize.disabled = True # TODO
+    if protons > 0 and neutrons > 0 and electrons > 0 and energy > 4999:
+        subatomic_row.add_item(nucleosynthesize)    
+
     container.add_item(subatomic_row)
 
     action_row = discord.ui.ActionRow()
     gain = discord.ui.Button(label="Gain")
     back = discord.ui.Button(label="Back")
+    fission = discord.ui.Button(label="Fission", style=discord.ButtonStyle.danger) # TODO
 
     action_row.add_item(gain)
     action_row.add_item(back)
+    
+    if energy >= 1_000_000 and atoms.get(list(ATOMS.keys())[0], 0) >= 1: # at least 1 hydrogen
+        action_row.add_item(fission)
 
     gain.callback = lambda inter: gain_cb(inter, bot)
     back.callback = lambda inter: menu_cb(inter, bot)
+    fission.callback = lambda inter: fission_cb(inter, bot, confirmed=False)
     container.add_item(action_row)
 
     await cb(interaction, view, is_command)
@@ -774,6 +994,11 @@ class SubatomicCog(commands.Cog):
                                 "key": "atom"
                             }])
             """
-                            
+
+    @subatomic_group.command(name="fission", description="Perform fission to reset your progress for photons")
+    @handle_errors()
+    async def fission_command(self, interaction: discord.Interaction):
+        await fission_cb(interaction, self.bot, confirmed=False)
+                        
 async def setup(bot: commands.Bot):
     await bot.add_cog(SubatomicCog(bot))
