@@ -13,6 +13,7 @@ from .files import (
 from .formulas import calculate_level_from_xp, calculate_xp_for_level
 from .upgrades import full_multipliers, full_chances
 from .moderation import Captcha, BanManager, moderate
+from .logging import setup_logging, get_logger, handle_errors
 
 __version__ = "0.0.2"
 def get_version():
@@ -31,5 +32,7 @@ __all__ = [
 
     "full_multipliers", "full_chances",
 
-    "Captcha", "BanManager", "moderate"
+    "Captcha", "BanManager", "moderate",
+    
+    "setup_logging", "get_logger", "handle_errors"
 ]

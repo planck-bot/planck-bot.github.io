@@ -5,6 +5,11 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from utils import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='$', intents=intents, shard_id=0, shard_count=2)
@@ -12,9 +17,14 @@ bot = commands.Bot(command_prefix='$', intents=intents, shard_id=0, shard_count=
 last_modified = {}
 
 async def register_commands():
+    logger.info("Registering commands...")
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py") and not filename.startswith("__"):
-            await bot.load_extension(f"cogs.{filename[:-3]}")
+            try:
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+                logger.info(f"Loaded extension: {filename[:-3]}")
+            except Exception as e:
+                logger.error(f"Failed to load extension {filename[:-3]}: {e}")
 
 async def reload_cog(cog_name):
     try:
@@ -57,15 +67,17 @@ async def cleanup_expired_captchas_task():
 
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
-    print(f'Bot is in {len(bot.guilds)} guilds')
-    print(f'With {len(bot.users)} users')
+    logger.info(f'{bot.user} has connected to Discord!')
+    logger.info(f'Bot is in {len(bot.guilds)} guilds')
+    logger.info(f'With {len(bot.users)} users')
     
     await register_commands()
     await bot.tree.sync()
+    logger.info("Command tree synced")
     
     bot.loop.create_task(watch_cogs())
     bot.loop.create_task(cleanup_expired_captchas_task())
+    logger.info("Background tasks started")
 
 @bot.event
 async def on_message(message):

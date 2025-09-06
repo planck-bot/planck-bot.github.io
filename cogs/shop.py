@@ -13,12 +13,18 @@ from utils import (
     get_user_data,
     moderate,
     read_json,
+    handle_errors,
+    get_logger
 )
 
+logger = get_logger(__name__)
+
+@handle_errors() # redundant but whatever
 def sanitize_item_name(item_name: str) -> str:
     """Convert item name to database-safe format (lowercase with underscores)"""
     return item_name.lower().replace(" ", "_").replace("-", "_")
 
+@handle_errors()
 async def get_unlocked_items(user: discord.User) -> list:
     user_data = await get_user_data("profile", user.id)
     if user_data is None:
@@ -34,6 +40,7 @@ async def get_unlocked_items(user: discord.User) -> list:
 
     return unlocked_items
 
+@handle_errors()
 async def get_user_upgrade_count(user_id: int, item: str) -> int:
     """Get how many times a user has bought a specific upgrade"""
     user_data = await get_user_data("upgrades", user_id)
@@ -42,6 +49,7 @@ async def get_user_upgrade_count(user_id: int, item: str) -> int:
     db_item_name = sanitize_item_name(item)
     return user_data.get(db_item_name, 0)
 
+@handle_errors()
 async def calculate_current_price(item_data: dict, current_count: int) -> dict:
     """Calculate the current price based on how many times the item was bought"""
     current_prices = {}
@@ -66,6 +74,7 @@ async def calculate_current_price(item_data: dict, current_count: int) -> dict:
     
     return current_prices
 
+@handle_errors()
 async def buy_item(user: discord.User, item: str) -> Tuple[bool, Optional[str]]:
     unlocked_items = await get_unlocked_items(user)
     if item not in unlocked_items:
@@ -100,6 +109,7 @@ async def buy_item(user: discord.User, item: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 @moderate()
+@handle_errors()
 async def shop_cb(interaction: discord.Interaction, bot: commands.Bot, is_command: bool = False, preserve_page: int = 0):
     user_id = interaction.user.id
     unlocked_items = await get_unlocked_items(interaction.user)
@@ -247,6 +257,7 @@ class ShopCog(commands.Cog):
     shop_cog = UniversalGroup(name="shop", description="Shop related commands")
 
     @shop_cog.command(name="regular", description="Show the regular shop")
+    @handle_errors()
     async def regular_shop(self, interaction: discord.Interaction):
         await shop_cb(interaction, self.bot, True)
 

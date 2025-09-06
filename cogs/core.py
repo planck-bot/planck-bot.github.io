@@ -18,11 +18,16 @@ from utils import (
     insert_data,
     moderate,
     universal_command,
+    get_logger,
+    handle_errors
 )
+
+logger = get_logger(__name__)
 
 start = time.time()
 captcha_manager = Captcha()
 
+@handle_errors()
 async def check_page_requirements(user_id: int, requirement: str = None) -> bool:
     """Check if a user has completed the required tutorial"""
     if not requirement:
@@ -34,6 +39,7 @@ async def check_page_requirements(user_id: int, requirement: str = None) -> bool
     return requirement in tutorials
 
 @moderate()
+@handle_errors()
 async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
     user_id = interaction.user.id
     view, container = await base_view(interaction)
@@ -121,6 +127,7 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
     await cb(interaction, view, True)
 
 @moderate()
+@handle_errors()
 async def profile_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     user_id = interaction.user.id
     
@@ -151,6 +158,7 @@ async def profile_cb(interaction: discord.Interaction, bot: commands.Bot = None,
     await cb(interaction, view, is_command)
 
 @moderate()
+@handle_errors()
 async def info_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     view, container = await base_view(interaction)
 
@@ -183,6 +191,7 @@ async def info_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
     await cb(interaction, view, is_command)
 
 @moderate()
+@handle_errors()
 async def menu_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     from .shop import shop_cb
     from .subatomic import subatomic_cb
@@ -226,6 +235,7 @@ async def menu_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
     await cb(interaction, view, is_command)
 
 @moderate()
+@handle_errors()
 async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     view, container = await base_view(interaction)
 
@@ -247,6 +257,7 @@ async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = N
     await cb(interaction, view, is_command)
 
 # @moderate()
+@handle_errors()
 async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False, stage: str = None, page = "Main"):
     view, container = await base_view(interaction)
 
@@ -479,6 +490,7 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
 
     await cb(interaction, view, is_command)
 
+@handle_errors()
 async def help_stage_select_cb(interaction: discord.Interaction, bot: commands.Bot):
     """Handle stage selection from the dropdown"""
     stage = interaction.data["values"][0]
@@ -494,30 +506,37 @@ class GlobalCog(commands.Cog):
 
     @universal_command(name="ping", description="Check the bot ping")
     # @cooldown(15.0)
+    @handle_errors()
     async def ping_command(self, interaction: discord.Interaction):
         await interaction.response.send_message(f"{self.bot.latency * 1000:.2f} ms")
 
     @universal_command(name="gain", description="Gain matter")
+    @handle_errors()
     async def gain_command(self, interaction: discord.Interaction):
         await gain_cb(interaction, self.bot)
 
     @universal_command(name="profile", description="View your profile")
+    @handle_errors()
     async def profile_command(self, interaction: discord.Interaction):
         await profile_cb(interaction, self.bot, True)
 
     @universal_command(name="info", description="Get information about the bot")
+    @handle_errors()
     async def info_command(self, interaction: discord.Interaction):
         await info_cb(interaction, self.bot, True)
 
     @universal_command(name="help", description="Use this command if you are stuck at a stage")
+    @handle_errors()
     async def help_command(self, interaction: discord.Interaction):
         await help_cb(interaction, self.bot, True)
 
     @universal_command(name="ticket", description="Create a ticket either to report or appeal")
     @app_commands.describe(report_type="The type of ticket (report/appeal)", reason_or_evidence="The reason or evidence for the ticket")
+    @handle_errors()
     async def ticket_command(self, interaction: discord.Interaction, report_type: str, reason_or_evidence: str):
         ...
 
+    @handle_errors()
     async def _create_captcha_view(self, interaction: discord.Interaction, components=None, title=None, message=None, file=None, show_regenerate=True):
         view, container = await base_view(interaction)
         
@@ -568,6 +587,7 @@ class GlobalCog(commands.Cog):
 
     @universal_command(name="verify", description="Verify a captcha or regenerate it")
     @app_commands.describe(captcha="Enter the captcha text or 'REGEN' to regenerate")
+    @handle_errors()
     async def verify_command(self, interaction: discord.Interaction, captcha: str):
         user_id = interaction.user.id
         

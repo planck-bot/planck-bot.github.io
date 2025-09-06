@@ -13,9 +13,14 @@ from utils import (
     full_multipliers,
     get_user_data,
     moderate,
+    handle_errors,
+    get_logger
 )
 
+logger = get_logger(__name__)
+
 @moderate()
+@handle_errors()
 async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_command: bool = False, *, title: str, callback, currencies: list = None, inputs: list = None, selects: list = None):
     """
     Allows for select menus and multiple text inputs in a modal.
@@ -73,9 +78,7 @@ async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_com
             modal.add_item(text_input)
     
     if selects:
-        print(selects)
         for select_config in selects:
-            print(select_config)
             select = discord.ui.Select(
                 placeholder=select_config.get("placeholder", None),
                 min_values=select_config.get("min_values", 1),
@@ -89,7 +92,7 @@ async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_com
                 ],
                 required=True
             )
-            print(select)
+
             modal.add_item(select)
 
     async def submit_callback(inter):
@@ -116,6 +119,7 @@ async def base_modal(interaction: discord.Interaction, bot: commands.Bot, is_com
     await interaction.response.send_modal(modal)
 
 @moderate()
+@handle_errors()
 async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -203,6 +207,7 @@ async def probabilize_cb(interaction: discord.Interaction, bot: commands.Bot = N
     await interaction.response.send_message(view=view)
 
 @moderate()
+@handle_errors()
 async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -316,6 +321,7 @@ async def differentiate_cb(interaction: discord.Interaction, bot: commands.Bot =
     await interaction.response.send_message(view=view)
 
 @moderate()
+@handle_errors()
 async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None, amount: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -385,6 +391,7 @@ async def condense_cb(interaction: discord.Interaction, bot: commands.Bot = None
 
     await interaction.response.send_message(view=view)
 
+@handle_errors()
 async def hadronize_cb(interaction: discord.Interaction, bot: commands.Bot = None, protons: int = 0, neutrons: int = 0):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -505,6 +512,7 @@ COMPOUNDS = {
     "uranium_dioxide": {"uranium": 1, "oxygen": 2}                       # Boosts energy by 5.0%
 }
 
+@handle_errors()
 async def nucleosynthesis_cb(interaction: discord.Interaction, bot: commands.Bot = None, *, atom: str, amount: int = 1):
     view, container = await base_view(interaction)
     user_data = await get_user_data("currency", interaction.user.id)
@@ -584,6 +592,7 @@ async def nucleosynthesis_cb(interaction: discord.Interaction, bot: commands.Bot
     await interaction.response.send_message(view=view)
 
 @moderate()
+@handle_errors()
 async def subatomic_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
     from .core import gain_cb, menu_cb
     view, container = await base_view(interaction)
@@ -663,11 +672,13 @@ class SubatomicCog(commands.Cog):
     subatomic_group = UniversalGroup(name="subatomic", description="Subatomic commands")
 
     @subatomic_group.command(name="menu", description="Open the subatomic menu")
+    @handle_errors()
     async def subatomic_command(self, interaction: discord.Interaction):
         await subatomic_cb(interaction, self.bot, True)
 
     @subatomic_group.command(name="probabilize", description="Attempt to create quarks")
     @app_commands.describe(amount="The amount to probabilize")
+    @handle_errors()
     async def probabilize_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
             await probabilize_cb(interaction, self.bot, amount)
@@ -684,6 +695,7 @@ class SubatomicCog(commands.Cog):
 
     @subatomic_group.command(name="differentiate", description="Differentiate quarks into specific types")
     @app_commands.describe(amount="The amount to differentiate (Requires 250 energy per quark)")
+    @handle_errors()
     async def differentiate_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
             await differentiate_cb(interaction, self.bot, amount)
@@ -700,6 +712,7 @@ class SubatomicCog(commands.Cog):
 
     @subatomic_group.command(name="condense", description="Condense electrons into energy")
     @app_commands.describe(amount="The amount to condense (1000 energy = 1 electron)")
+    @handle_errors()
     async def condense_command(self, interaction: discord.Interaction, amount: int = 0):
         if amount > 0:
             await condense_cb(interaction, self.bot, amount)
@@ -716,6 +729,7 @@ class SubatomicCog(commands.Cog):
 
     @subatomic_group.command(name="hadronize", description="Hadronize protons and neutrons from quarks")
     @app_commands.describe(protons="The amount of protons to hadronize", neutrons="The amount of neutrons to hadronize")
+    @handle_errors()
     async def hadronize_command(self, interaction: discord.Interaction, protons: int = 0, neutrons: int = 0):
         if protons > 0 or neutrons > 0:
             await hadronize_cb(interaction, self.bot, protons, neutrons)
@@ -737,6 +751,7 @@ class SubatomicCog(commands.Cog):
     @subatomic_group.command(name="nucleosynthesis", description="Synthesize atoms from protons, neutrons, and electrons")
     @app_commands.describe(atom="The atom to synthesize")
     @app_commands.choices(atom=[app_commands.Choice(name=atom.title(), value=atom) for atom in ATOMS.keys()]) # Should be less than 25
+    @handle_errors()
     async def nucleosynthesis_command(self, interaction: discord.Interaction, atom: str = ""):
         if atom:
             await nucleosynthesis_cb(interaction, self.bot, atom=atom.lower())
