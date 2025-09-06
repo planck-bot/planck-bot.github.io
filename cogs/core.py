@@ -325,6 +325,27 @@ async def help_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
                         "└─There will also be shop items you can buy with them."
                     ),
                     "requirement": "condenser_tutorial"
+                },
+                "Hadronization": {
+                    "title": "Making Protons and Neutrons",
+                    "content": (
+                        "</subatomic hadronize:1412151005088448542> is how you're going to make protons and neutrons!\n\n"
+                        "┌─Requires up and down quarks\n"
+                        "├─Protons require 2 up quarks and 1 down quark\n"
+                        "├─Neutrons require 1 up quark and 2 down quarks\n"
+                        "└─ └─You will need these to make atoms later on!"
+                    ),
+                    "requirement": "hadronization_tutorial"
+                },
+                "Nucleosynthesis": {
+                    "title": "Making Atoms",
+                    "content": (
+                        "</subatomic nucleosynthesize:1412151005088448542> is how you're going to make atoms!\n\n"
+                        "┌─Requires protons, neutrons, and electrons\n"
+                        "├─ └─1 proton + 1 neutron + 1 electron = Hydrogen\n"
+                        "└─Atoms are the final product of this stage"
+                    ),
+                    "requirement": "nucleosynthesis_tutorial"
                 }
             }
         }

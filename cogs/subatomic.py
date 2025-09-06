@@ -411,6 +411,29 @@ async def hadronize_cb(interaction: discord.Interaction, bot: commands.Bot = Non
         ))
         return await interaction.response.send_message(view=view)
 
+
+    profile = await get_user_data("profile", interaction.user.id, {})
+    
+    tutorials = profile.get("tutorials", [])
+    if not isinstance(tutorials, list):
+        tutorials = []
+
+    if "hadronization_tutorial" not in tutorials:
+        tutorials.append("hadronization_tutorial")
+        await add_data("profile", interaction.user.id, {"tutorials": tutorials})
+
+        container.add_item(discord.ui.TextDisplay(
+            "You have created your first protons and neutrons!\n"
+            "</subatomic hadronize:1412151005088448542> is how you will create protons and neutrons!\n\n"
+            "┌─Requires up and down quarks\n"
+            "├─Protons require 2 up quarks and 1 down quark\n"
+            "├─Neutrons require 1 up quark and 2 down quarks\n"
+            "└─ └─You will need these to make atoms later on!"
+            "-# Use </help:1412981220635312252> to view this again!"
+        ))
+
+        container.add_item(discord.ui.Separator())
+            
     await add_data("currency", interaction.user.id, {quark: -amount for quark, amount in required_quarks.items()})
     await add_data("currency", interaction.user.id, {"energy": -energy_cost, "protons": protons, "neutrons": neutrons})
     user_data = await get_user_data("currency", interaction.user.id)
@@ -519,6 +542,27 @@ async def nucleosynthesis_cb(interaction: discord.Interaction, bot: commands.Bot
             f"You do not have enough resources to synthesize {amount} {atom}(s). You need {', '.join(missing)}."
         ))
         return await interaction.response.send_message(view=view)
+
+    profile = await get_user_data("profile", interaction.user.id, {})
+
+    tutorials = profile.get("tutorials", [])
+    if not isinstance(tutorials, list):
+        tutorials = []
+
+    if "nucleosynthesis_tutorial" not in tutorials:
+        tutorials.append("nucleosynthesis_tutorial")
+        await add_data("profile", interaction.user.id, {"tutorials": tutorials})
+
+        container.add_item(discord.ui.TextDisplay(
+            "You have created your first atom!\n"
+            "</subatomic nucleosynthesize:1412151005088448542> is how you're going to make atoms!\n\n"
+            "┌─Requires protons, neutrons, and electrons\n"
+            "├─ └─1 proton + 1 neutron + 1 electron = Hydrogen\n"
+            "└─Atoms are the final product of this stage"
+            "-# Use </help:1412981220635312252> to view this again!"
+        ))
+
+        container.add_item(discord.ui.Separator())
 
     # currency table atoms: {"hydrogen": 1, etc}
     await add_data("currency", interaction.user.id, {
