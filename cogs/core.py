@@ -131,6 +131,55 @@ async def gain_cb(interaction: discord.Interaction, bot: commands.Bot = None):
 
     await cb(interaction, view, True)
 
+
+@moderate()
+@handle_errors()
+async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
+    view, container = await base_view(interaction)
+
+    xp = await full_multipliers("xp", user=interaction.user)
+
+    energy = await full_multipliers("energy", user=interaction.user)
+    quarks = await full_multipliers("quark", user=interaction.user)
+    quarks_chance = await full_chances("quark", user=interaction.user)
+
+    container.add_item(discord.ui.TextDisplay(
+        f"**XP**: {xp:.2f}x\n"
+        f"**Energy**: {energy:.2f}x\n"
+        f"**Quarks**: {quarks:.2f}x ({quarks_chance:.2f}%)\n"
+    ))
+    container.add_item(discord.ui.Separator())
+    action_row = discord.ui.ActionRow()
+    back = discord.ui.Button(label="Back")
+    action_row.add_item(back)
+    back.callback = lambda inter: profile_cb(inter, bot)
+    container.add_item(action_row)
+    await cb(interaction, view, is_command)
+
+@moderate()
+@handle_errors()
+async def resets_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
+    view, container = await base_view(interaction)
+    
+    resets = await get_user_data("resets", interaction.user.id, {})
+  
+    text = ""
+    fission = resets.get("fission", 0)
+    if fission > 0:
+        text += f"**Fission Resets**: {fission:,}\n"
+    
+    container.add_item(discord.ui.TextDisplay(
+        text if text is not "" else "You have no resets."
+    ))
+
+    container.add_item(discord.ui.Separator())
+    action_row = discord.ui.ActionRow()
+    back = discord.ui.Button(label="Back")
+    action_row.add_item(back)
+    back.callback = lambda inter: profile_cb(inter, bot)
+    container.add_item(action_row)
+    await cb(interaction, view, is_command)
+
 @moderate()
 @handle_errors()
 async def profile_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
@@ -152,12 +201,15 @@ async def profile_cb(interaction: discord.Interaction, bot: commands.Bot = None,
     action_row = discord.ui.ActionRow()
 
     multipliers = discord.ui.Button(label="Multipliers")
+    resets = discord.ui.Button(label="Resets")
     back = discord.ui.Button(label="Back")
 
     action_row.add_item(multipliers)
+    action_row.add_item(resets)
     action_row.add_item(back)
 
     multipliers.callback = lambda inter: multipliers_cb(inter, bot)
+    resets.callback = lambda inter: resets_cb(inter, bot)
     back.callback = lambda inter: menu_cb(inter, bot)
     container.add_item(action_row)
     await cb(interaction, view, is_command)
@@ -236,30 +288,6 @@ async def menu_cb(interaction: discord.Interaction, bot: commands.Bot = None, is
     shop.callback = lambda inter: shop_cb(inter, bot)
     # leaderboard.callback = lambda inter: leaderboard_cb(inter)
 
-    container.add_item(action_row)
-    await cb(interaction, view, is_command)
-
-@moderate()
-@handle_errors()
-async def multipliers_cb(interaction: discord.Interaction, bot: commands.Bot = None, is_command: bool = False):
-    view, container = await base_view(interaction)
-
-    xp = await full_multipliers("xp", user=interaction.user)
-
-    energy = await full_multipliers("energy", user=interaction.user)
-    quarks = await full_multipliers("quark", user=interaction.user)
-    quarks_chance = await full_chances("quark", user=interaction.user)
-
-    container.add_item(discord.ui.TextDisplay(
-        f"**XP**: {xp:.2f}x\n"
-        f"**Energy**: {energy:.2f}x\n"
-        f"**Quarks**: {quarks:.2f}x ({quarks_chance:.2f}%)\n"
-    ))
-    container.add_item(discord.ui.Separator())
-    action_row = discord.ui.ActionRow()
-    back = discord.ui.Button(label="Back")
-    action_row.add_item(back)
-    back.callback = lambda inter: profile_cb(inter, bot)
     container.add_item(action_row)
     await cb(interaction, view, is_command)
 
