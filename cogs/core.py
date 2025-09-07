@@ -169,7 +169,7 @@ async def resets_cb(interaction: discord.Interaction, bot: commands.Bot = None, 
         text += f"**Fission Resets**: {fission:,}\n"
     
     container.add_item(discord.ui.TextDisplay(
-        text if text is not "" else "You have no resets."
+        text if text != "" else "You have no resets."
     ))
 
     container.add_item(discord.ui.Separator())
@@ -587,6 +587,74 @@ class GlobalCog(commands.Cog):
     @handle_errors()
     async def ticket_command(self, interaction: discord.Interaction, report_type: str, reason_or_evidence: str):
         ...
+
+    @universal_command(name="ban", description="Ban a user, extend a ban, or check ban status")
+    @app_commands.describe(
+        user="The user to ban/check",
+        duration="Duration in days (e.g., 7 for 7 days, -1 for permanent, 0 to unban). Optional if just checking status",
+        reason="Reason for the ban. Use 'EXTEND' to extend current ban. Optional if just checking status"
+    )
+    @handle_errors()
+    async def ban_command(self, interaction: discord.Interaction, user: discord.User, duration: int = None, reason: str = None):
+        from utils.moderation import BanManager
+        
+        if interaction.user.id not in (721151215010054165, ):
+            return await interaction.response.send_message("You don't have permission to use this command.\n-# sorry im just too lazy to make this only in a specific server! congrays on being curious.", ephemeral=True)
+        
+        if duration is None and reason is None:
+            ban_info = await BanManager.get_ban_info(user.id)
+            if not ban_info["banned"]:
+                return await interaction.response.send_message(f"{user.mention} is not banned.", ephemeral=True)
+            
+            if ban_info["permanent"]:
+                msg = (f"{user.mention} is permanently banned\n"
+                      f"**Reason:** {ban_info['reason']}\n"
+                      f"**Banned by:** {ban_info['moderator']}")
+            else:
+                msg = (f"{user.mention} is banned for {ban_info['days']}d {ban_info['hours']}h {ban_info['minutes']}m\n"
+                      f"**Reason:** {ban_info['reason']}\n"
+                      f"**Banned by:** {ban_info['moderator']}")
+            
+            return await interaction.response.send_message(msg, ephemeral=True)
+        
+        if duration == 0:
+            await BanManager.unban_user(user.id, str(interaction.user))
+            return await interaction.response.send_message(f"Unbanned {user.mention}", ephemeral=True)
+
+        if reason == "EXTEND":
+            ban_info = await BanManager.get_ban_info(user.id)
+            if not ban_info["banned"]:
+                return await interaction.response.send_message(f"{user.mention} is not banned, cannot extend ban.", ephemeral=True)
+            
+            if ban_info["permanent"]:
+                return await interaction.response.send_message(f"{user.mention} is permanently banned, cannot extend.", ephemeral=True)
+
+            current_time = time.time()
+            remaining_time = ban_info["remaining_time"]
+            extension_seconds = duration * 24 * 60 * 60
+            new_ban_until = int(current_time + remaining_time + extension_seconds)
+            
+            extended_reason = f"{ban_info['reason']} (Extended by {duration} days)"
+            await BanManager.change_ban_duration(user.id, new_ban_until, extended_reason, str(interaction.user))
+            
+            return await interaction.response.send_message(
+                f"Extended {user.mention}'s ban by {duration} days\n"
+                f"New duration: {ban_info['days'] + duration}d {ban_info['hours']}h {ban_info['minutes']}m", 
+                ephemeral=True
+            )
+        
+        if duration == -1:
+            await BanManager.ban_user(user.id, -1, reason or "No reason provided", str(interaction.user))
+            msg = f"Permanently banned {user.mention}"
+        else:
+            ban_until = int(time.time() + (duration * 24 * 60 * 60))
+            await BanManager.ban_user(user.id, ban_until, reason or "No reason provided", str(interaction.user))
+            msg = f"Banned {user.mention} for {duration} days"
+        
+        if reason:
+            msg += f"\nReason: {reason}"
+            
+        await interaction.response.send_message(msg, ephemeral=True)
 
     @handle_errors()
     async def _create_captcha_view(self, interaction: discord.Interaction, components=None, title=None, message=None, file=None, show_regenerate=True):

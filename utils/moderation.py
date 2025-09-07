@@ -1,11 +1,19 @@
 import discord
 import random
 import time
+import os
 import io
 import functools
+import aiohttp
+from dotenv import load_dotenv
 from PIL import Image, ImageFont, ImageDraw, ImageFilter
 
 from .files import get_user_data, insert_data, update_data
+from .logging import get_logger
+
+logger = get_logger(__name__)
+
+load_dotenv()
 
 def moderate():
     def decorator(func):
@@ -357,6 +365,25 @@ class Captcha:
             "regenerations": captcha_data["regenerations"]
         }
 
+    CAPTCHA_WEBHOOK_URL = os.getenv("CAPTCHA_WEBHOOK_URL")
+
+    async def _send_captcha_fail_webhook(self, user_id: int, captcha_text: str, user_input: str, attempts: int) -> None:
+        embed = {
+            "title": "Captcha Failure",
+            "color": 0xFF0000,
+            "fields": [
+                {"name": "User ID", "value": str(user_id), "inline": True},
+                {"name": "Attempt #", "value": str(attempts), "inline": True},
+                {"name": "Expected", "value": f"`{captcha_text}`", "inline": True},
+                {"name": "Received", "value": f"`{user_input}`", "inline": True}
+            ]
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self.CAPTCHA_WEBHOOK_URL, json={"embeds": [embed]}) as response:
+                if response.status != 204:
+                    logger.error(f"Failed to send captcha webhook notification: {response.status}")
+
     async def verify_captcha(self, user_id: int, user_input: str) -> dict:
         """Verify captcha input"""
         if user_id not in self.active_captchas:
@@ -374,6 +401,8 @@ class Captcha:
 
             self.last_captcha_time[user_id] = time.time()
             return {"success": True, "message": "Captcha solved successfully!", "action": "success"}
+        
+        await self._send_captcha_fail_webhook(user_id, captcha_data["text"], user_input.strip(), captcha_data["attempts"] + 1)
         
         captcha_data["attempts"] += 1
         
@@ -409,12 +438,12 @@ class Captcha:
     async def _ban_user_for_captcha_failure(self, user_id: int):
         """Ban user for 30 days due to captcha failure"""
         ban_until = time.time() + (30 * 24 * 60 * 60)
-        await BanManager.ban_user(user_id, int(ban_until), "Captcha failure - exceeded maximum attempts")
+        await BanManager.ban_user(user_id, int(ban_until), "Captcha failure - exceeded maximum attempts", "AutoMod")
 
     async def _ban_user_for_captcha_expiry(self, user_id: int):
         """Ban user for 7 days due to captcha expiry"""
         ban_until = time.time() + (30 * 24 * 60 * 60) # might seem harsh, but they can appeal it.
-        await BanManager.ban_user(user_id, int(ban_until), "Captcha expiry - failed to solve captcha within time limit")
+        await BanManager.ban_user(user_id, int(ban_until), "Captcha expiry - failed to solve captcha within time limit", "AutoMod")
 
     async def cleanup_expired_captchas(self):
         current_time = time.time()
@@ -439,35 +468,99 @@ class BanManager:
         ban_data = await get_user_data("ban", user_id)
         if ban_data:
             ban_until = ban_data.get("ban_until", 0)
-            if ban_until == -1:  # Permanent ban
+            if ban_until == -1:
                 return True
             return ban_until > time.time()
         return False
 
-    @staticmethod
-    async def ban_user(user_id: int, duration: int, reason: str = "") -> None:
-        await insert_data("ban", {"id": user_id, "ban_until": duration, "reason": reason})
+    BAN_WEBHOOK_URL = os.getenv("BAN_WEBHOOK_URL")
 
     @staticmethod
-    async def unban_user(user_id: int) -> None:
-        await update_data("ban", {"ban_until": 0, "reason": ""}, "id", user_id)
+    async def _send_webhook(title: str, color: int, fields: list) -> None:
+        embed = {
+            "title": title,
+            "color": color,
+            "fields": fields
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(BanManager.BAN_WEBHOOK_URL, json={"embeds": [embed]}) as response:
+                if response.status != 204:
+                    logger.error(f"Failed to send webhook notification: {response.status}")
 
     @staticmethod
-    async def change_ban_duration(user_id: int, duration: int, reason: str = None) -> None:
+    async def ban_user(user_id: int, duration: int, reason: str = "", moderator: str = "System") -> None:
+        await insert_data("ban", {"id": user_id, "ban_until": duration, "reason": reason, "moderator": moderator})
+                
+        if duration == -1:
+            duration_str = "Permanent"
+        else:
+            remaining_time = duration - time.time()
+            days = int(remaining_time // 86400)
+            hours = int((remaining_time % 86400) // 3600)
+            minutes = int((remaining_time % 3600) // 60)
+            duration_str = f"{days}d {hours}h {minutes}m"
+
+        fields = [
+            {"name": "Reason", "value": reason or "No reason provided", "inline": False},
+            {"name": "Moderator", "value": moderator, "inline": True},
+            {"name": "Duration", "value": duration_str, "inline": True}
+        ]
+        
+        await BanManager._send_webhook("Ban Case", 0xFF0000, fields)
+
+    @staticmethod
+    async def unban_user(user_id: int, moderator: str = "System") -> None:
+        ban_info = await BanManager.get_ban_info(user_id)
+        if ban_info["banned"]:
+            fields = [
+                {"name": "Previous Reason", "value": ban_info["reason"], "inline": False},
+                {"name": "Previous Duration", "value": "Permanent" if ban_info.get("permanent", False) else f"{ban_info['days']}d {ban_info['hours']}h {ban_info['minutes']}m", "inline": True},
+                {"name": "Unbanned By", "value": moderator, "inline": True}
+            ]
+            await BanManager._send_webhook("Unban Case", 0x00FF00, fields)  # Green color
+            
+        await update_data("ban", {"ban_until": 0, "reason": "", "moderator": moderator}, "id", user_id)
+
+    @staticmethod
+    async def change_ban_duration(user_id: int, duration: int, reason: str = None, moderator: str = "System") -> None:
         update_data_dict = {"ban_until": duration}
         if reason is not None:
             update_data_dict["reason"] = reason
+        update_data_dict["moderator"] = moderator
+        
+        old_ban_info = await BanManager.get_ban_info(user_id)
+        
         await update_data("ban", update_data_dict, "id", user_id)
+        
+        if duration == -1:
+            new_duration_str = "Permanent"
+        else:
+            remaining_time = duration - time.time()
+            days = int(remaining_time // 86400)
+            hours = int((remaining_time % 86400) // 3600)
+            minutes = int((remaining_time % 3600) // 60)
+            new_duration_str = f"{days}d {hours}h {minutes}m"
+        
+        fields = [
+            {"name": "Previous Duration", "value": "Permanent" if old_ban_info.get("permanent", False) else f"{old_ban_info['days']}d {old_ban_info['hours']}h {old_ban_info['minutes']}m", "inline": True},
+            {"name": "New Duration", "value": new_duration_str, "inline": True},
+            {"name": "Previous Reason", "value": old_ban_info["reason"], "inline": False},
+            {"name": "New Reason", "value": reason or "No reason provided", "inline": False},
+            {"name": "Modified By", "value": moderator, "inline": True}
+        ]
+        
+        await BanManager._send_webhook("Ban Modified", 0xFFA500, fields)  # Orange color
     
     @staticmethod
     async def get_ban_info(user_id: int) -> dict:
-        """Get ban information including reason and duration"""
         ban_data = await get_user_data("ban", user_id)
         if not ban_data:
             return {"banned": False}
         
         ban_until = ban_data.get("ban_until", 0)
         reason = ban_data.get("reason", "No reason provided")
+        moderator = ban_data.get("moderator", "System")
         
         if ban_until == 0:
             return {"banned": False}
@@ -475,7 +568,8 @@ class BanManager:
             return {
                 "banned": True,
                 "permanent": True,
-                "reason": reason
+                "reason": reason,
+                "moderator": moderator
             }
         else:
             remaining_time = ban_until - time.time()
@@ -490,6 +584,7 @@ class BanManager:
                 "banned": True,
                 "permanent": False,
                 "reason": reason,
+                "moderator": moderator,
                 "remaining_time": remaining_time,
                 "days": days,
                 "hours": hours,
